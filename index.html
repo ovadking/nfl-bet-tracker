@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Prop Tracker v8 - Ultimate Edition</title>
+    <title>Pro Prop Tracker v10 - Final</title>
     <style>
         :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -14,19 +14,21 @@
         label { font-size: 0.65rem; color: #777; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
 
-        .search-wrap { position: relative; background: #222; border-radius: 8px; border: 1px solid #333; margin-top: 5px; }
+        .search-wrap { background: #222; border-radius: 8px; border: 1px solid #333; margin-top: 5px; overflow: hidden; }
         #p-search { border: none; background: transparent; }
-        #player-select { height: 120px; background: #1a1a1a; border: none; border-top: 1px solid #333; margin-top: 0; border-radius: 0 0 8px 8px; }
+        #player-select { height: 160px; background: #1a1a1a; border: none; border-top: 1px solid #333; margin-top: 0; border-radius: 0; }
 
-        .btn-add { background: var(--red); border: none; font-weight: bold; cursor: pointer; height: 50px; margin-top: 20px; }
+        .btn-add { background: var(--red); border: none; font-weight: bold; cursor: pointer; height: 50px; margin-top: 20px; transition: 0.2s; }
+        .btn-reset { background: transparent; border: 1px solid #444; color: #666; font-size: 0.7rem; margin-top: 10px; cursor: pointer; }
+        .btn-reset:hover { border-color: var(--red); color: var(--red); }
         
         #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         
-        .card { background: var(--card); padding: 20px; border-radius: 16px; border-top: 4px solid #333; position: relative; transition: 0.3s; }
+        .card { background: var(--card); padding: 20px; border-radius: 16px; border-top: 4px solid #333; position: relative; }
         .card.hit { border-top-color: var(--green); border-bottom: 2px solid var(--green); }
         .stat-val { font-size: 3rem; font-weight: 900; margin: 10px 0; font-variant-numeric: tabular-nums; }
-        .remove { position: absolute; right: 15px; top: 15px; cursor: pointer; color: #444; background: none; border: none; }
+        .remove { position: absolute; right: 15px; top: 15px; cursor: pointer; color: #444; background: none; border: none; font-size: 1.2rem; }
         
         .toggle-wrap { display: flex; align-items: center; justify-content: space-between; background: #111; padding: 10px; border-radius: 8px; margin-top: auto; border: 1px solid #333; }
         .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
@@ -40,7 +42,7 @@
 <body>
 
 <div id="sidebar">
-    <h2>PRO TRACKER V8</h2>
+    <h2>PRO TRACKER V10</h2>
     
     <label>Sport</label>
     <select id="sport-select" onchange="fetchSchedule()">
@@ -48,13 +50,13 @@
         <option value="football/nfl">NFL Football</option>
     </select>
 
-    <label>Matchup</label>
+    <label>Matchup (Dec 23)</label>
     <select id="game-select" onchange="loadRosters()"></select>
 
     <label>Search Player</label>
     <div class="search-wrap">
         <input type="text" id="p-search" placeholder="Type name..." onkeyup="filterRoster()">
-        <select id="player-select" size="6"></select>
+        <select id="player-select" size="8"></select>
     </div>
 
     <label>Prop Type</label>
@@ -69,9 +71,10 @@
     <input type="number" id="bet-line" step="0.5" placeholder="e.g. 24.5">
 
     <button class="btn-add" onclick="addProp()">START TRACKING</button>
+    <button class="btn-reset" onclick="resetAll()">RESET ALL TRACKERS</button>
 
     <div class="toggle-wrap">
-        <span style="font-size: 0.6rem; font-weight: bold;">SYNC (15s)</span>
+        <span style="font-size: 0.6rem; font-weight: bold; color: #888;">AUTO-SYNC</span>
         <label class="switch">
             <input type="checkbox" id="refresh-toggle" checked>
             <span class="slider"></span>
@@ -84,7 +87,7 @@
 </div>
 
 <script>
-    let activeProps = JSON.parse(localStorage.getItem('props_v8')) || [];
+    let activeProps = JSON.parse(localStorage.getItem('props_v10')) || [];
     let fullRoster = [];
     const sportConfig = {
         "basketball/nba": { pts: "PTS", reb: "REB", ast: "AST", "3pm": "3PM" },
@@ -103,37 +106,62 @@
     async function fetchSchedule() {
         const sport = document.getElementById('sport-select').value;
         const today = "20251223"; 
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard?dates=${today}&cb=${Date.now()}`);
-        const data = await res.json();
-        document.getElementById('game-select').innerHTML = data.events.map(e => `<option value="${e.id}">${e.name}</option>`).join('') || '<option>No Games</option>';
-        loadRosters();
+        try {
+            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard?dates=${today}&cb=${Date.now()}`);
+            const data = await res.json();
+            const gSelect = document.getElementById('game-select');
+            gSelect.innerHTML = data.events.map(e => `<option value="${e.id}">${e.name}</option>`).join('') || '<option>No Games Today</option>';
+            loadRosters();
+        } catch(e) { console.error("Schedule Error", e); }
     }
 
     async function loadRosters() {
         const sport = document.getElementById('sport-select').value;
         const gameId = document.getElementById('game-select').value;
         if(!gameId) return;
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${p.sport}/summary?event=${gameId}`);
-        // [Logic simplified for brevity]
-        const data = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`)).json();
-        fullRoster = [];
-        for (let comp of data.header.competitions[0].competitors) {
-            const rData = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${comp.id}/roster`)).json();
-            rData.athletes.forEach(g => g.items.forEach(p => fullRoster.push({id: p.id, name: p.displayName, team: rData.team.abbreviation})));
-        }
-        filterRoster();
+
+        try {
+            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`);
+            const data = await res.json();
+            
+            fullRoster = [];
+            // Direct extraction from Boxscore - the most accurate source for active players
+            if(data.boxscore && data.boxscore.players) {
+                data.boxscore.players.forEach(teamGroup => {
+                    const teamAbbr = teamGroup.team.abbreviation;
+                    // Check all stat groups for athletes
+                    teamGroup.statistics.forEach(statGroup => {
+                        if(statGroup.athletes) {
+                            statGroup.athletes.forEach(entry => {
+                                // Prevent duplicates
+                                if(!fullRoster.find(r => r.id === entry.athlete.id)) {
+                                    fullRoster.push({
+                                        id: entry.athlete.id,
+                                        name: entry.athlete.displayName,
+                                        team: teamAbbr
+                                    });
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+            filterRoster();
+        } catch(e) { console.error("Roster Error", e); }
     }
 
     function filterRoster() {
         const term = document.getElementById('p-search').value.toLowerCase();
         const filtered = fullRoster.filter(p => p.name.toLowerCase().includes(term));
-        document.getElementById('player-select').innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
+        const pSelect = document.getElementById('player-select');
+        pSelect.innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
+        if(filtered.length > 0) pSelect.selectedIndex = 0;
     }
 
     function addProp() {
         const pSel = document.getElementById('player-select');
         const line = parseFloat(document.getElementById('bet-line').value);
-        if (!pSel.value || isNaN(line)) return alert("Select player and line!");
+        if (!pSel.value || isNaN(line)) return alert("Select a player and enter a line!");
 
         activeProps.push({
             id: pSel.value,
@@ -144,6 +172,7 @@
             line: line, current: 0, hit: false, notified: false
         });
         save();
+        document.getElementById('bet-line').value = "";
     }
 
     async function refreshLiveStats() {
@@ -152,48 +181,44 @@
                 const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${p.sport}/summary?event=${p.gameId}`);
                 const data = await res.json();
                 const label = sportConfig[p.sport][p.type];
-                data.boxscore.players.forEach(t => t.statistics.forEach(s => {
-                    const athlete = s.athletes.find(a => a.athlete.id === p.id);
-                    if(athlete) {
-                        const idx = s.labels.indexOf(label);
-                        if(idx !== -1) p.current = parseFloat(athlete.stats[idx]) || 0;
-                    }
-                }));
+                
+                if(data.boxscore && data.boxscore.players) {
+                    data.boxscore.players.forEach(t => t.statistics.forEach(s => {
+                        const athlete = s.athletes.find(a => a.athlete.id === p.id);
+                        if(athlete) {
+                            const idx = s.labels.indexOf(label);
+                            if(idx !== -1) p.current = parseFloat(athlete.stats[idx]) || 0;
+                        }
+                    }));
+                }
+
                 if(p.current >= p.line && !p.hit) {
                     p.hit = true;
-                    sendWinNotification(p);
+                    if (Notification.permission === "granted") {
+                        new Notification("💰 WINNER!", { body: `${p.name} cleared ${p.line} ${p.type.toUpperCase()}!` });
+                    }
                 }
             } catch(e) {}
         }
         renderUI();
     }
 
-    function sendWinNotification(p) {
-        if (Notification.permission === "granted" && !p.notified) {
-            new Notification("✅ PROP HIT!", {
-                body: `${p.name} just hit ${p.current} ${p.type.toUpperCase()} (Target: ${p.line})`,
-                icon: "https://www.espn.com/favicon.ico"
-            });
-            p.notified = true;
-        }
-    }
-
     function renderUI() {
         document.getElementById('bets-container').innerHTML = activeProps.map((p, i) => `
             <div class="card ${p.hit ? 'hit' : ''}">
                 <button class="remove" onclick="removeProp(${i})">✕</button>
-                <div style="font-size:0.6rem; color:#888;">LIVE NBA</div>
+                <div style="font-size:0.6rem; color:#888;">${p.sport.split('/')[1].toUpperCase()} LIVE</div>
                 <h3 style="margin:5px 0;">${p.name}</h3>
                 <div style="font-size:0.8rem; color:#666;">LINE: ${p.line} ${p.type.toUpperCase()}</div>
                 <div class="stat-val" style="color:${p.hit ? 'var(--green)' : '#fff'}">${p.current}</div>
                 <div style="height:4px; background:#222; border-radius:2px;"><div style="height:100%; background:${p.hit ? 'var(--green)' : 'var(--red)'}; width:${Math.min((p.current/p.line)*100, 100)}%;"></div></div>
-                ${p.hit ? '<div style="color:var(--green); font-size:0.7rem; margin-top:10px; font-weight:bold;">TICKET CASHED ✅</div>' : ''}
             </div>
         `).join('');
     }
 
-    function save() { localStorage.setItem('props_v8', JSON.stringify(activeProps)); renderUI(); }
+    function save() { localStorage.setItem('props_v10', JSON.stringify(activeProps)); renderUI(); }
     function removeProp(i) { activeProps.splice(i, 1); save(); }
+    function resetAll() { if(confirm("Clear all active trackers?")) { activeProps = []; save(); } }
 </script>
 </body>
 </html>
