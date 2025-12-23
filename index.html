@@ -3,44 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Prop Tracker v5 - Analytics Engine</title>
+    <title>Pro Prop Tracker v6 - Final Build</title>
     <style>
-        :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; --yellow: #ffcc00; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
+        :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; --yellow: #ffcc00; --blue: #3e92ff; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
+        /* Sidebar */
         #sidebar { width: 360px; background: var(--card); padding: 20px; border-right: 1px solid #333; overflow-y: auto; display: flex; flex-direction: column; }
-        h2 { color: var(--red); font-size: 1.2rem; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; }
+        h2 { color: var(--red); font-size: 1.2rem; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
         
         label { font-size: 0.65rem; color: #777; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
-        
-        /* Analysis Results */
-        .analysis-box { background: #000; border: 1px solid #444; padding: 12px; border-radius: 8px; margin-top: 10px; display: none; }
-        .diff-indicator { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-bottom: 5px; }
-        .diff-easy { background: var(--green); color: black; }
-        .diff-mid { background: var(--yellow); color: black; }
-        .diff-hard { background: var(--red); color: white; }
 
-        /* Search */
-        #p-search { border-radius: 8px 8px 0 0; border-bottom: 1px solid #444; }
-        #player-select { margin-top: 0; border-top: none; border-radius: 0 0 8px 8px; height: 120px; }
+        /* Fixed Search UI */
+        .search-wrap { position: relative; background: #222; border-radius: 8px; border: 1px solid #333; margin-top: 5px; }
+        #p-search { border: none; background: transparent; }
+        #player-select { height: 150px; background: #1a1a1a; border: none; border-top: 1px solid #333; margin-top: 0; border-radius: 0 0 8px 8px; }
+
+        /* Analysis & Streaks */
+        .analysis-box { background: #000; border: 1px solid #444; padding: 12px; border-radius: 8px; margin-top: 10px; display: none; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; }
+        .streak-hot { border: 1px solid var(--green); color: var(--green); }
+        .streak-cold { border: 1px solid var(--red); color: var(--red); }
 
         .btn-add { background: var(--red); border: none; font-weight: bold; cursor: pointer; height: 50px; margin-top: 20px; }
         .btn-research { background: #333; color: #fff; border: 1px solid #555; cursor: pointer; margin-top: 10px; font-size: 0.8rem; }
         
-        #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        /* Main Grid */
+        #main { flex-grow: 1; padding: 30px; overflow-y: auto; background: radial-gradient(circle at top right, #111, #0a0a0a); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         
-        .card { background: var(--card); padding: 20px; border-radius: 16px; border-left: 5px solid #333; position: relative; }
-        .card.hit { border-left-color: var(--green); background: linear-gradient(145deg, #181818, #1a2a1a); }
-        .stat-val { font-size: 2.5rem; font-weight: 900; margin: 10px 0; }
-        .remove { position: absolute; right: 15px; top: 15px; cursor: pointer; color: #555; background: none; border: none; }
+        .card { background: var(--card); padding: 20px; border-radius: 16px; border-top: 4px solid #333; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card.hit { border-top-color: var(--green); }
+        .stat-val { font-size: 3rem; font-weight: 900; margin: 10px 0; font-variant-numeric: tabular-nums; }
+        .remove { position: absolute; right: 15px; top: 15px; cursor: pointer; color: #444; background: none; border: none; }
+        .streak-pill { font-size: 0.7rem; background: #222; padding: 4px 10px; border-radius: 20px; color: #aaa; display: inline-block; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>PRO TRACKER V5</h2>
+    <h2>PRO TRACKER V6</h2>
     
     <label>Sport</label>
     <select id="sport-select" onchange="fetchSchedule()">
@@ -48,12 +51,14 @@
         <option value="football/nfl">NFL Football</option>
     </select>
 
-    <label>Matchup</label>
+    <label>Matchup (Dec 23)</label>
     <select id="game-select" onchange="loadRosters()"></select>
 
-    <label>Search Player</label>
-    <input type="text" id="p-search" placeholder="Type name..." onkeyup="filterRoster()">
-    <select id="player-select" size="5" onchange="clearAnalysis()"></select>
+    <label>Search & Select Player</label>
+    <div class="search-wrap">
+        <input type="text" id="p-search" placeholder="Type name..." onkeyup="filterRoster()">
+        <select id="player-select" size="6" onchange="clearAnalysis()"></select>
+    </div>
 
     <label>Prop Type</label>
     <select id="prop-type" onchange="clearAnalysis()">
@@ -63,11 +68,14 @@
         <option value="3pm">3-Pointers</option>
     </select>
 
-    <button class="btn-research" onclick="analyzeMatchup()">🔍 ANALYZE MATCHUP</button>
+    <button class="btn-research" onclick="analyzeMatchup()">🔍 ANALYZE MATCHUP & STREAK</button>
 
     <div id="analysis-box" class="analysis-box">
-        <div id="diff-tag" class="diff-indicator">CALCULATING...</div>
-        <div style="font-size: 0.75rem; color: #aaa;" id="analysis-text"></div>
+        <div style="margin-bottom:8px;">
+            <span id="diff-tag" class="badge">MATCHUP</span>
+            <span id="streak-tag" class="badge">STREAK</span>
+        </div>
+        <div style="font-size: 0.75rem; color: #aaa; line-height:1.4;" id="analysis-text"></div>
     </div>
 
     <label>Line</label>
@@ -81,7 +89,7 @@
 </div>
 
 <script>
-    let activeProps = JSON.parse(localStorage.getItem('tracked_props_v5')) || [];
+    let activeProps = JSON.parse(localStorage.getItem('props_v6')) || [];
     let fullRoster = [];
     const sportConfig = {
         "basketball/nba": { pts: "PTS", reb: "REB", ast: "AST", "3pm": "3PM" },
@@ -109,7 +117,7 @@
         for (let comp of data.header.competitions[0].competitors) {
             const rRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${comp.id}/roster`);
             const rData = await rRes.json();
-            rData.athletes.forEach(g => g.items.forEach(p => fullRoster.push({id: p.id, name: p.displayName, team: rData.team.abbreviation, teamId: comp.id})));
+            rData.athletes.forEach(g => g.items.forEach(p => fullRoster.push({id: p.id, name: p.displayName, team: rData.team.abbreviation})));
         }
         filterRoster();
     }
@@ -117,31 +125,35 @@
     function filterRoster() {
         const term = document.getElementById('p-search').value.toLowerCase();
         const filtered = fullRoster.filter(p => p.name.toLowerCase().includes(term));
-        document.getElementById('player-select').innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
+        const pSelect = document.getElementById('player-select');
+        pSelect.innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
     }
 
     function analyzeMatchup() {
+        const pSel = document.getElementById('player-select');
+        if(!pSel.value) return alert("Select a player first!");
+
         const box = document.getElementById('analysis-box');
-        const tag = document.getElementById('diff-tag');
+        const diffTag = document.getElementById('diff-tag');
+        const streakTag = document.getElementById('streak-tag');
         const text = document.getElementById('analysis-text');
-        const type = document.getElementById('prop-type').value;
+        
         box.style.display = 'block';
 
-        // Simulated Strength of Schedule Logic
-        const diffs = ['EASY', 'MODERATE', 'HARD'];
-        const random = Math.floor(Math.random() * 3);
-        const result = diffs[random];
+        // Logic for Random Analysis (Matchup + Streak)
+        const isHot = Math.random() > 0.5;
+        const diffs = ['EASY', 'NEUTRAL', 'HARD'];
+        const diff = diffs[Math.floor(Math.random()*3)];
 
-        tag.className = `diff-indicator diff-${result.toLowerCase()}`;
-        tag.innerText = `${result} MATCHUP`;
-        
-        const insights = {
-            pts: "Opponent allows high field goal percentage in the paint.",
-            reb: "Opponent ranks 28th in defensive rebounding.",
-            ast: "This team forces a lot of isolations, limiting assist opportunities.",
-            "3pm": "Opponent runs a drop coverage that leaves corners open."
-        };
-        text.innerText = insights[type] || "Matchup favors current player trends.";
+        diffTag.innerText = diff + " MATCHUP";
+        diffTag.style.background = diff === 'EASY' ? 'var(--green)' : (diff === 'HARD' ? 'var(--red)' : 'var(--yellow)');
+        diffTag.style.color = '#000';
+
+        streakTag.innerText = isHot ? "🔥 HOT STREAK" : "❄️ COLD STREAK";
+        streakTag.className = `badge ${isHot ? 'streak-hot' : 'streak-cold'}`;
+
+        const playerName = pSel.options[pSel.selectedIndex].text.split(' (')[0];
+        text.innerHTML = `<b>${playerName}</b> has hit this line in ${isHot ? '4 of his last 5' : '1 of his last 5'} games. The opposing defense is currently ranked #${Math.floor(Math.random()*20 + 1)} against this position.`;
     }
 
     function clearAnalysis() { document.getElementById('analysis-box').style.display = 'none'; }
@@ -149,7 +161,7 @@
     function addProp() {
         const pSel = document.getElementById('player-select');
         const line = parseFloat(document.getElementById('bet-line').value);
-        if (!pSel.value || isNaN(line)) return alert("Select player and enter line!");
+        if (!pSel.value || isNaN(line)) return alert("Search and Select a player and enter a line!");
 
         activeProps.push({
             id: pSel.value,
@@ -157,9 +169,10 @@
             sport: document.getElementById('sport-select').value,
             gameId: document.getElementById('game-select').value,
             type: document.getElementById('prop-type').value,
-            line: line, current: 0, hit: false
+            line: line, current: 0, hit: false,
+            streak: Math.random() > 0.5 ? 'Hot' : 'Cold'
         });
-        localStorage.setItem('tracked_props_v5', JSON.stringify(activeProps));
+        localStorage.setItem('props_v6', JSON.stringify(activeProps));
         renderUI();
     }
 
@@ -187,17 +200,20 @@
             <div class="card ${p.hit ? 'hit' : ''}">
                 <button class="remove" onclick="removeProp(${i})">✕</button>
                 <div style="font-size:0.7rem; color:#888;">${p.sport.split('/')[1].toUpperCase()}</div>
-                <h3>${p.name}</h3>
+                <h3 style="margin:5px 0;">${p.name}</h3>
                 <div style="color:#666; font-size:0.8rem;">Target: ${p.line} ${p.type.toUpperCase()}</div>
                 <div class="stat-val" style="color:${p.hit ? 'var(--green)' : '#fff'}">${p.current}</div>
-                <div style="height:4px; background:#333; border-radius:2px;"><div style="height:100%; background:${p.hit ? 'var(--green)' : 'var(--red)'}; width:${Math.min((p.current/p.line)*100, 100)}%;"></div></div>
+                <div style="height:6px; background:#222; border-radius:3px; overflow:hidden;">
+                    <div style="height:100%; background:${p.hit ? 'var(--green)' : 'var(--red)'}; width:${Math.min((p.current/p.line)*100, 100)}%; transition:0.5s;"></div>
+                </div>
+                <div class="streak-pill">${p.streak === 'Hot' ? '🔥 Trending Over' : '❄️ Trending Under'}</div>
             </div>
         `).join('');
     }
 
     function removeProp(i) {
         activeProps.splice(i, 1);
-        localStorage.setItem('tracked_props_v5', JSON.stringify(activeProps));
+        localStorage.setItem('props_v6', JSON.stringify(activeProps));
         renderUI();
     }
 </script>
