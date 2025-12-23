@@ -3,82 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFL Live Bet Tracker</title>
+    <title>NFL Live Bet Tracker (Fixed)</title>
     <style>
-        :root {
-            --espn-red: #cc0000;
-            --dark-bg: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #ffffff;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--dark-bg);
-            color: var(--text-main);
-            margin: 0;
-            display: flex;
-            height: 100vh;
-        }
-        /* Sidebar Styles */
-        #sidebar {
-            width: 350px;
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-right: 2px solid #333;
-            overflow-y: auto;
-        }
-        /* Main Stats Display */
-        #live-stats {
-            flex-grow: 1;
-            padding: 40px;
-            overflow-y: auto;
-        }
-        .bet-card {
-            background: #2a2a2a;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-left: 5px solid var(--espn-red);
-        }
-        .stat-update {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #4caf50;
-        }
-        select, input, button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 4px;
-            border: none;
-            background: #333;
-            color: white;
-        }
-        button {
-            background-color: var(--espn-red);
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover { background-color: #ff0000; }
+        :root { --espn-red: #cc0000; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #ffffff; }
+        body { font-family: sans-serif; background-color: var(--dark-bg); color: var(--text-main); margin: 0; display: flex; height: 100vh; }
+        #sidebar { width: 350px; background-color: var(--card-bg); padding: 20px; border-right: 2px solid #333; overflow-y: auto; }
+        #live-stats { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .bet-card { background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid var(--espn-red); position: relative; }
+        .remove-btn { position: absolute; right: 10px; top: 10px; color: #888; cursor: pointer; border: none; background: none; width: auto !important; margin: 0; }
+        .stat-update { font-size: 1.5em; font-weight: bold; margin: 10px 0; }
+        select, input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 4px; border: none; background: #333; color: white; box-sizing: border-box; }
+        button { background-color: var(--espn-red); cursor: pointer; font-weight: bold; }
         .refresh-tag { font-size: 0.8em; color: #888; margin-top: 10px; }
+        .progress-bar { height: 8px; background: #444; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; transition: width 0.5s; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>Add New Bet</h2>
+    <h2>NFL Bet Tracker</h2>
     
-    <label>Live/Upcoming Game:</label>
+    <label>1. Select Live Game:</label>
     <select id="game-select" onchange="loadPlayers()">
-        <option>Loading live games...</option>
+        <option>Loading games...</option>
     </select>
 
-    <label>Player:</label>
+    <label>2. Select Player:</label>
     <select id="player-select">
-        <option>Select a game first</option>
+        <option>Choose a game first...</option>
     </select>
 
-    <label>Bet Category:</label>
+    <label>3. Stat Category:</label>
     <select id="stat-category">
         <option value="rushingYards">Rushing Yards</option>
         <option value="passingYards">Passing Yards</option>
@@ -86,124 +42,150 @@
         <option value="receptions">Receptions</option>
     </select>
 
-    <label>Line (Over/Under Value):</label>
-    <input type="number" id="bet-line" placeholder="e.g. 75.5">
+    <label>4. Your Line (Number):</label>
+    <input type="number" id="bet-line" step="0.5" placeholder="e.g. 65.5">
 
-    <button onclick="addBet()">Add to Tracker</button>
+    <button onclick="addBet()">Add Bet to Tracker</button>
     
-    <div class="refresh-tag" id="last-update">Last update: Never</div>
+    <div class="refresh-tag" id="last-update">Updates every 30s...</div>
 </div>
 
 <div id="live-stats">
-    <h1>My Active Bets</h1>
-    <div id="bets-container">
-        </div>
+    <h1>Active Bets</h1>
+    <div id="bets-container"></div>
 </div>
 
 <script>
     let myBets = [];
-    const ESPN_API = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+    const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 
-    // 1. Fetch Live Games for Dropdown
-    async function fetchLiveGames() {
-        const response = await fetch(ESPN_API);
-        const data = await response.json();
+    // 1. Fetch Games
+    async function fetchGames() {
+        const res = await fetch(`${BASE_URL}/scoreboard`);
+        const data = await res.json();
         const select = document.getElementById('game-select');
         select.innerHTML = '<option value="">-- Choose a Game --</option>';
-
-        data.events.forEach(event => {
-            const option = document.createElement('option');
-            option.value = event.id;
-            option.textContent = event.name;
-            select.appendChild(option);
+        data.events.forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = e.id;
+            opt.textContent = e.name;
+            select.appendChild(opt);
         });
     }
 
-    // 2. Fetch Players for Selected Game
+    // 2. Load Full Rosters for the two teams in the game
     async function loadPlayers() {
         const gameId = document.getElementById('game-select').value;
         if (!gameId) return;
 
-        const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${gameId}`);
-        const data = await response.json();
         const playerSelect = document.getElementById('player-select');
-        playerSelect.innerHTML = '';
+        playerSelect.innerHTML = '<option>Loading Roster...</option>';
 
-        // Flatten athletes from both teams
-        data.competitors.forEach(team => {
-            team.roster.forEach(player => {
+        try {
+            // Get game details to find team IDs
+            const summaryRes = await fetch(`${BASE_URL}/summary?event=${gameId}`);
+            const summaryData = await summaryRes.json();
+            const teamIds = summaryData.header.competitions[0].competitors.map(c => c.id);
+
+            let allPlayers = [];
+
+            // Fetch full roster for both teams
+            for (let id of teamIds) {
+                const rosterRes = await fetch(`${BASE_URL}/teams/${id}/roster`);
+                const rosterData = await rosterRes.json();
+                
+                // Group players (Offense, Defense, Special Teams)
+                rosterData.athletes.forEach(group => {
+                    group.items.forEach(p => {
+                        allPlayers.push({ id: p.id, name: p.displayName, team: rosterData.team.abbreviation });
+                    });
+                });
+            }
+
+            // Sort alphabetically and populate dropdown
+            allPlayers.sort((a, b) => a.name.localeCompare(b.name));
+            playerSelect.innerHTML = '<option value="">-- Select Player --</option>';
+            allPlayers.forEach(p => {
                 const opt = document.createElement('option');
-                opt.value = player.athlete.id;
-                opt.textContent = `${player.athlete.displayName} (${team.team.abbreviation})`;
+                opt.value = p.id;
+                opt.textContent = `${p.name} (${p.team})`;
                 playerSelect.appendChild(opt);
             });
-        });
+        } catch (e) {
+            playerSelect.innerHTML = '<option>Error loading players</option>';
+        }
     }
 
-    // 3. Add Bet to Local List
     function addBet() {
-        const bet = {
-            gameId: document.getElementById('game-select').value,
-            playerId: document.getElementById('player-select').value,
-            playerName: document.getElementById('player-select').options[document.getElementById('player-select').selectedIndex].text,
-            category: document.getElementById('stat-category').value,
-            line: document.getElementById('bet-line').value,
-            currentStat: 0
-        };
-        myBets.push(bet);
+        const gameId = document.getElementById('game-select').value;
+        const playerId = document.getElementById('player-select').value;
+        const playerName = document.getElementById('player-select').options[document.getElementById('player-select').selectedIndex].text;
+        const category = document.getElementById('stat-category').value;
+        const line = parseFloat(document.getElementById('bet-line').value);
+
+        if (!gameId || !playerId || !line) return alert("Fill out all fields!");
+
+        myBets.push({ gameId, playerId, playerName, category, line, currentStat: 0 });
         updateUI();
+        refreshStats();
     }
 
-    // 4. Update Live Stats every 30 seconds
     async function refreshStats() {
         for (let bet of myBets) {
-            const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${bet.gameId}`);
-            const data = await response.json();
-            
-            // Search data.boxscore.players for the specific player and stat
-            data.boxscore.players.forEach(teamStats => {
-                teamStats.statistics.forEach(statGroup => {
-                    const athleteStat = statGroup.athletes.find(a => a.athlete.id === bet.playerId);
-                    if (athleteStat) {
-                        const statIndex = statGroup.labels.indexOf(getESPNLabel(bet.category));
-                        if (statIndex !== -1) {
-                            bet.currentStat = athleteStat.stats[statIndex];
+            try {
+                const res = await fetch(`${BASE_URL}/summary?event=${bet.gameId}`);
+                const data = await res.json();
+                
+                // Traverse boxscore for stats
+                data.boxscore.players.forEach(team => {
+                    team.statistics.forEach(statType => {
+                        const athlete = statType.athletes.find(a => a.athlete.id === bet.playerId);
+                        if (athlete) {
+                            // Find index of the stat we want
+                            const idx = statType.labels.findIndex(l => l === getESPNLabel(bet.category));
+                            if (idx !== -1) bet.currentStat = parseFloat(athlete.stats[idx]);
                         }
-                    }
+                    });
                 });
-            });
+            } catch (e) { console.error("Update error", e); }
         }
         updateUI();
         document.getElementById('last-update').textContent = "Last update: " + new Date().toLocaleTimeString();
     }
 
     function getESPNLabel(cat) {
-        const map = { "rushingYards": "YDS", "passingYards": "YDS", "receivingYards": "YDS", "receptions": "REC" };
-        return map[cat];
+        if (cat === "rushingYards") return "YDS";
+        if (cat === "passingYards") return "YDS";
+        if (cat === "receivingYards") return "YDS";
+        if (cat === "receptions") return "REC";
+        return "";
     }
 
     function updateUI() {
         const container = document.getElementById('bets-container');
         container.innerHTML = '';
-        myBets.forEach(bet => {
-            const diff = bet.currentStat - bet.line;
-            const statusColor = diff >= 0 ? "#4caf50" : "#ff9800";
+        myBets.forEach((bet, index) => {
+            const pct = Math.min((bet.currentStat / bet.line) * 100, 100);
+            const isOver = bet.currentStat >= bet.line;
+            const color = isOver ? "#4caf50" : "#ff9800";
             
             container.innerHTML += `
                 <div class="bet-card">
-                    <h3>${bet.playerName}</h3>
-                    <p>Bet: ${bet.line} ${bet.category}</p>
-                    <div class="stat-update" style="color:${statusColor}">Live: ${bet.currentStat}</div>
-                    <small>${diff >= 0 ? 'OVER by ' + diff.toFixed(1) : 'UNDER by ' + Math.abs(diff).toFixed(1)}</small>
+                    <button class="remove-btn" onclick="removeBet(${index})">✕</button>
+                    <strong>${bet.playerName}</strong><br>
+                    <small>${bet.category.replace(/([A-Z])/g, ' $1').toUpperCase()} | Line: ${bet.line}</small>
+                    <div class="stat-update" style="color:${color}">${bet.currentStat}</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%; background:${color}"></div></div>
+                    <p style="font-size: 0.8em; margin-top:5px;">${isOver ? '✅ OVER HIT' : (bet.line - bet.currentStat).toFixed(1) + ' to go'}</p>
                 </div>
             `;
         });
     }
 
-    // Initialize
-    fetchLiveGames();
-    setInterval(refreshStats, 30000); // 30 second refresh
-</script>
+    function removeBet(i) { myBets.splice(i, 1); updateUI(); }
 
+    fetchGames();
+    setInterval(refreshStats, 30000);
+</script>
 </body>
 </html>
