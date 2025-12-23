@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Prop Tracker v11 - Fixed Roster</title>
+    <title>Pro Prop Tracker v12 - Roster Fixed</title>
     <style>
         :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -11,23 +11,23 @@
         h2 { color: var(--red); font-size: 1.2rem; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
         label { font-size: 0.65rem; color: #777; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
-        .search-wrap { background: #222; border-radius: 8px; border: 1px solid #333; margin-top: 5px; overflow: hidden; }
+        .search-wrap { background: #222; border-radius: 8px; border: 1px solid #333; margin-top: 5px; }
         #p-search { border: none; background: transparent; }
-        #player-select { height: 180px; background: #1a1a1a; border: none; border-top: 1px solid #333; margin-top: 0; border-radius: 0; }
+        #player-select { height: 180px; background: #1a1a1a; border: none; border-top: 1px solid #333; margin-top: 0; border-radius: 0; width: 100%; color: white; }
         .btn-add { background: var(--red); border: none; font-weight: bold; cursor: pointer; height: 50px; margin-top: 20px; }
         .btn-reset { background: transparent; border: 1px solid #444; color: #666; font-size: 0.7rem; margin-top: 10px; cursor: pointer; }
         #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .card { background: var(--card); padding: 20px; border-radius: 16px; border-top: 4px solid #333; position: relative; }
-        .stat-val { font-size: 3rem; font-weight: 900; margin: 10px 0; font-variant-numeric: tabular-nums; }
+        .stat-val { font-size: 3rem; font-weight: 900; margin: 10px 0; }
         .remove { position: absolute; right: 15px; top: 15px; cursor: pointer; color: #444; background: none; border: none; }
-        .loading-text { font-size: 0.7rem; color: var(--green); margin-top: 5px; display: none; }
+        #status-msg { font-size: 0.65rem; color: var(--yellow); margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>PRO TRACKER V11</h2>
+    <h2>PRO TRACKER V12</h2>
     
     <label>1. Sport</label>
     <select id="sport-select" onchange="fetchSchedule()">
@@ -37,22 +37,22 @@
 
     <label>2. Matchup (Dec 23)</label>
     <select id="game-select" onchange="loadRosters()"></select>
+    <div id="status-msg">Select a game to load players...</div>
 
     <label>3. Search Player</label>
     <div class="search-wrap">
-        <input type="text" id="p-search" placeholder="Type name..." onkeyup="filterRoster()">
+        <input type="text" id="p-search" placeholder="Search by name..." onkeyup="filterRoster()">
         <select id="player-select" size="8"></select>
     </div>
-    <div id="loading" class="loading-text">Fetching Roster...</div>
 
-    <label>4. Prop & Line</label>
+    <label>4. Line</label>
     <select id="prop-type">
         <option value="pts">Points</option>
         <option value="reb">Rebounds</option>
         <option value="ast">Assists</option>
         <option value="3pm">3-Pointers</option>
     </select>
-    <input type="number" id="bet-line" step="0.5" placeholder="Enter Line (e.g. 22.5)">
+    <input type="number" id="bet-line" step="0.5" placeholder="e.g. 25.5">
 
     <button class="btn-add" onclick="addProp()">START TRACKING</button>
     <button class="btn-reset" onclick="resetAll()">RESET ALL</button>
@@ -63,12 +63,9 @@
 </div>
 
 <script>
-    let activeProps = JSON.parse(localStorage.getItem('props_v11')) || [];
+    let activeProps = JSON.parse(localStorage.getItem('props_v12')) || [];
     let fullRoster = [];
-    const sportConfig = {
-        "basketball/nba": { pts: "PTS", reb: "REB", ast: "AST", "3pm": "3PM" },
-        "football/nfl": { recYds: "YDS", rushYds: "YDS", tds: "TD" }
-    };
+    let gameToTeamsMap = {}; // Stores which team IDs belong to which game
 
     window.onload = () => {
         fetchSchedule(); 
@@ -79,50 +76,57 @@
     async function fetchSchedule() {
         const sport = document.getElementById('sport-select').value;
         const today = "20251223"; 
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard?dates=${today}`);
-        const data = await res.json();
-        const gSelect = document.getElementById('game-select');
-        gSelect.innerHTML = data.events.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-        loadRosters();
+        try {
+            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard?dates=${today}`);
+            const data = await res.json();
+            const gSelect = document.getElementById('game-select');
+            
+            gameToTeamsMap = {};
+            gSelect.innerHTML = data.events.map(e => {
+                // Map game ID to the two team IDs for roster fetching
+                gameToTeamsMap[e.id] = e.competitions[0].competitors.map(c => c.id);
+                return `<option value="${e.id}">${e.name}</option>`;
+            }).join('');
+            
+            loadRosters();
+        } catch(e) { console.error("Schedule Error:", e); }
     }
 
     async function loadRosters() {
         const sport = document.getElementById('sport-select').value;
         const gameId = document.getElementById('game-select').value;
-        const loader = document.getElementById('loading');
-        if(!gameId) return;
-
-        loader.style.display = 'block';
+        const status = document.getElementById('status-msg');
+        
+        if(!gameId || !gameToTeamsMap[gameId]) return;
+        
+        status.innerText = "⚡ Loading Rosters...";
         fullRoster = [];
         
         try {
-            // Get Game Summary to find Team IDs
-            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`);
-            const data = await res.json();
-            
-            // Loop through the two teams in the matchup
-            const teams = data.header.competitions[0].competitors;
-            for (let t of teams) {
-                // Fetch the FULL roster for each team (More reliable than boxscore for pre-game)
-                const teamRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${t.id}/roster`);
-                const teamData = await teamRes.json();
+            const teamIds = gameToTeamsMap[gameId];
+            for (let teamId of teamIds) {
+                const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${teamId}/roster`);
+                const data = await res.json();
+                const teamAbbr = data.team.abbreviation;
                 
-                // Flatten the athletes array (ESPN groups them by position)
-                teamData.athletes.forEach(group => {
+                // ESPN rosters are grouped (Offense, Defense, Special or Guard, Forward, Center)
+                data.athletes.forEach(group => {
                     group.items.forEach(p => {
                         fullRoster.push({
                             id: p.id,
                             name: p.displayName,
-                            team: teamData.team.abbreviation
+                            team: teamAbbr
                         });
                     });
                 });
             }
-            // Sort alphabetically
             fullRoster.sort((a, b) => a.name.localeCompare(b.name));
             filterRoster();
-        } catch(e) { console.error("Roster error:", e); }
-        loader.style.display = 'none';
+            status.innerText = `✅ Found ${fullRoster.length} players`;
+        } catch(e) { 
+            status.innerText = "❌ Error loading rosters";
+            console.error("Roster Error:", e); 
+        }
     }
 
     function filterRoster() {
@@ -149,11 +153,17 @@
     }
 
     async function refreshLiveStats() {
+        const sport = document.getElementById('sport-select').value;
+        const config = {
+            "basketball/nba": { pts: "PTS", reb: "REB", ast: "AST", "3pm": "3PM" },
+            "football/nfl": { recYds: "YDS", rushYds: "YDS", tds: "TD" }
+        };
+
         for (let p of activeProps) {
             try {
                 const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${p.sport}/summary?event=${p.gameId}`);
                 const data = await res.json();
-                const label = sportConfig[p.sport][p.type];
+                const label = config[p.sport][p.type];
                 
                 if(data.boxscore && data.boxscore.players) {
                     data.boxscore.players.forEach(t => t.statistics.forEach(s => {
@@ -182,7 +192,7 @@
         `).join('');
     }
 
-    function save() { localStorage.setItem('props_v11', JSON.stringify(activeProps)); renderUI(); }
+    function save() { localStorage.setItem('props_v12', JSON.stringify(activeProps)); renderUI(); }
     function removeProp(i) { activeProps.splice(i, 1); save(); }
     function resetAll() { if(confirm("Clear board?")) { activeProps = []; save(); } }
 </script>
