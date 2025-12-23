@@ -3,47 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Prop Tracker v6 - Final Build</title>
+    <title>Pro Prop Tracker v8 - Ultimate Edition</title>
     <style>
-        :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; --yellow: #ffcc00; --blue: #3e92ff; }
+        :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Sidebar */
         #sidebar { width: 360px; background: var(--card); padding: 20px; border-right: 1px solid #333; overflow-y: auto; display: flex; flex-direction: column; }
         h2 { color: var(--red); font-size: 1.2rem; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
         
         label { font-size: 0.65rem; color: #777; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
 
-        /* Fixed Search UI */
         .search-wrap { position: relative; background: #222; border-radius: 8px; border: 1px solid #333; margin-top: 5px; }
         #p-search { border: none; background: transparent; }
-        #player-select { height: 150px; background: #1a1a1a; border: none; border-top: 1px solid #333; margin-top: 0; border-radius: 0 0 8px 8px; }
-
-        /* Analysis & Streaks */
-        .analysis-box { background: #000; border: 1px solid #444; padding: 12px; border-radius: 8px; margin-top: 10px; display: none; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; }
-        .streak-hot { border: 1px solid var(--green); color: var(--green); }
-        .streak-cold { border: 1px solid var(--red); color: var(--red); }
+        #player-select { height: 120px; background: #1a1a1a; border: none; border-top: 1px solid #333; margin-top: 0; border-radius: 0 0 8px 8px; }
 
         .btn-add { background: var(--red); border: none; font-weight: bold; cursor: pointer; height: 50px; margin-top: 20px; }
-        .btn-research { background: #333; color: #fff; border: 1px solid #555; cursor: pointer; margin-top: 10px; font-size: 0.8rem; }
         
-        /* Main Grid */
-        #main { flex-grow: 1; padding: 30px; overflow-y: auto; background: radial-gradient(circle at top right, #111, #0a0a0a); }
+        #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         
-        .card { background: var(--card); padding: 20px; border-radius: 16px; border-top: 4px solid #333; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .card.hit { border-top-color: var(--green); }
+        .card { background: var(--card); padding: 20px; border-radius: 16px; border-top: 4px solid #333; position: relative; transition: 0.3s; }
+        .card.hit { border-top-color: var(--green); border-bottom: 2px solid var(--green); }
         .stat-val { font-size: 3rem; font-weight: 900; margin: 10px 0; font-variant-numeric: tabular-nums; }
         .remove { position: absolute; right: 15px; top: 15px; cursor: pointer; color: #444; background: none; border: none; }
-        .streak-pill { font-size: 0.7rem; background: #222; padding: 4px 10px; border-radius: 20px; color: #aaa; display: inline-block; margin-top: 10px; }
+        
+        .toggle-wrap { display: flex; align-items: center; justify-content: space-between; background: #111; padding: 10px; border-radius: 8px; margin-top: auto; border: 1px solid #333; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--green); }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>PRO TRACKER V6</h2>
+    <h2>PRO TRACKER V8</h2>
     
     <label>Sport</label>
     <select id="sport-select" onchange="fetchSchedule()">
@@ -51,37 +48,35 @@
         <option value="football/nfl">NFL Football</option>
     </select>
 
-    <label>Matchup (Dec 23)</label>
+    <label>Matchup</label>
     <select id="game-select" onchange="loadRosters()"></select>
 
-    <label>Search & Select Player</label>
+    <label>Search Player</label>
     <div class="search-wrap">
         <input type="text" id="p-search" placeholder="Type name..." onkeyup="filterRoster()">
-        <select id="player-select" size="6" onchange="clearAnalysis()"></select>
+        <select id="player-select" size="6"></select>
     </div>
 
     <label>Prop Type</label>
-    <select id="prop-type" onchange="clearAnalysis()">
+    <select id="prop-type">
         <option value="pts">Points</option>
         <option value="reb">Rebounds</option>
         <option value="ast">Assists</option>
         <option value="3pm">3-Pointers</option>
     </select>
 
-    <button class="btn-research" onclick="analyzeMatchup()">🔍 ANALYZE MATCHUP & STREAK</button>
-
-    <div id="analysis-box" class="analysis-box">
-        <div style="margin-bottom:8px;">
-            <span id="diff-tag" class="badge">MATCHUP</span>
-            <span id="streak-tag" class="badge">STREAK</span>
-        </div>
-        <div style="font-size: 0.75rem; color: #aaa; line-height:1.4;" id="analysis-text"></div>
-    </div>
-
     <label>Line</label>
     <input type="number" id="bet-line" step="0.5" placeholder="e.g. 24.5">
 
     <button class="btn-add" onclick="addProp()">START TRACKING</button>
+
+    <div class="toggle-wrap">
+        <span style="font-size: 0.6rem; font-weight: bold;">SYNC (15s)</span>
+        <label class="switch">
+            <input type="checkbox" id="refresh-toggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
 </div>
 
 <div id="main">
@@ -89,19 +84,26 @@
 </div>
 
 <script>
-    let activeProps = JSON.parse(localStorage.getItem('props_v6')) || [];
+    let activeProps = JSON.parse(localStorage.getItem('props_v8')) || [];
     let fullRoster = [];
     const sportConfig = {
         "basketball/nba": { pts: "PTS", reb: "REB", ast: "AST", "3pm": "3PM" },
         "football/nfl": { recYds: "YDS", rushYds: "YDS", tds: "TD" }
     };
 
-    window.onload = () => { fetchSchedule(); renderUI(); setInterval(refreshLiveStats, 15000); };
+    window.onload = () => {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+        fetchSchedule(); 
+        renderUI(); 
+        setInterval(() => { if(document.getElementById('refresh-toggle').checked) refreshLiveStats(); }, 15000);
+    };
 
     async function fetchSchedule() {
         const sport = document.getElementById('sport-select').value;
-        const dateStr = "20251223"; 
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard?dates=${dateStr}&cb=${Date.now()}`);
+        const today = "20251223"; 
+        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard?dates=${today}&cb=${Date.now()}`);
         const data = await res.json();
         document.getElementById('game-select').innerHTML = data.events.map(e => `<option value="${e.id}">${e.name}</option>`).join('') || '<option>No Games</option>';
         loadRosters();
@@ -111,12 +113,12 @@
         const sport = document.getElementById('sport-select').value;
         const gameId = document.getElementById('game-select').value;
         if(!gameId) return;
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`);
-        const data = await res.json();
+        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${p.sport}/summary?event=${gameId}`);
+        // [Logic simplified for brevity]
+        const data = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`)).json();
         fullRoster = [];
         for (let comp of data.header.competitions[0].competitors) {
-            const rRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${comp.id}/roster`);
-            const rData = await rRes.json();
+            const rData = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${comp.id}/roster`)).json();
             rData.athletes.forEach(g => g.items.forEach(p => fullRoster.push({id: p.id, name: p.displayName, team: rData.team.abbreviation})));
         }
         filterRoster();
@@ -125,43 +127,13 @@
     function filterRoster() {
         const term = document.getElementById('p-search').value.toLowerCase();
         const filtered = fullRoster.filter(p => p.name.toLowerCase().includes(term));
-        const pSelect = document.getElementById('player-select');
-        pSelect.innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
+        document.getElementById('player-select').innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
     }
-
-    function analyzeMatchup() {
-        const pSel = document.getElementById('player-select');
-        if(!pSel.value) return alert("Select a player first!");
-
-        const box = document.getElementById('analysis-box');
-        const diffTag = document.getElementById('diff-tag');
-        const streakTag = document.getElementById('streak-tag');
-        const text = document.getElementById('analysis-text');
-        
-        box.style.display = 'block';
-
-        // Logic for Random Analysis (Matchup + Streak)
-        const isHot = Math.random() > 0.5;
-        const diffs = ['EASY', 'NEUTRAL', 'HARD'];
-        const diff = diffs[Math.floor(Math.random()*3)];
-
-        diffTag.innerText = diff + " MATCHUP";
-        diffTag.style.background = diff === 'EASY' ? 'var(--green)' : (diff === 'HARD' ? 'var(--red)' : 'var(--yellow)');
-        diffTag.style.color = '#000';
-
-        streakTag.innerText = isHot ? "🔥 HOT STREAK" : "❄️ COLD STREAK";
-        streakTag.className = `badge ${isHot ? 'streak-hot' : 'streak-cold'}`;
-
-        const playerName = pSel.options[pSel.selectedIndex].text.split(' (')[0];
-        text.innerHTML = `<b>${playerName}</b> has hit this line in ${isHot ? '4 of his last 5' : '1 of his last 5'} games. The opposing defense is currently ranked #${Math.floor(Math.random()*20 + 1)} against this position.`;
-    }
-
-    function clearAnalysis() { document.getElementById('analysis-box').style.display = 'none'; }
 
     function addProp() {
         const pSel = document.getElementById('player-select');
         const line = parseFloat(document.getElementById('bet-line').value);
-        if (!pSel.value || isNaN(line)) return alert("Search and Select a player and enter a line!");
+        if (!pSel.value || isNaN(line)) return alert("Select player and line!");
 
         activeProps.push({
             id: pSel.value,
@@ -169,11 +141,9 @@
             sport: document.getElementById('sport-select').value,
             gameId: document.getElementById('game-select').value,
             type: document.getElementById('prop-type').value,
-            line: line, current: 0, hit: false,
-            streak: Math.random() > 0.5 ? 'Hot' : 'Cold'
+            line: line, current: 0, hit: false, notified: false
         });
-        localStorage.setItem('props_v6', JSON.stringify(activeProps));
-        renderUI();
+        save();
     }
 
     async function refreshLiveStats() {
@@ -189,33 +159,41 @@
                         if(idx !== -1) p.current = parseFloat(athlete.stats[idx]) || 0;
                     }
                 }));
-                if(p.current >= p.line) p.hit = true;
+                if(p.current >= p.line && !p.hit) {
+                    p.hit = true;
+                    sendWinNotification(p);
+                }
             } catch(e) {}
         }
         renderUI();
+    }
+
+    function sendWinNotification(p) {
+        if (Notification.permission === "granted" && !p.notified) {
+            new Notification("✅ PROP HIT!", {
+                body: `${p.name} just hit ${p.current} ${p.type.toUpperCase()} (Target: ${p.line})`,
+                icon: "https://www.espn.com/favicon.ico"
+            });
+            p.notified = true;
+        }
     }
 
     function renderUI() {
         document.getElementById('bets-container').innerHTML = activeProps.map((p, i) => `
             <div class="card ${p.hit ? 'hit' : ''}">
                 <button class="remove" onclick="removeProp(${i})">✕</button>
-                <div style="font-size:0.7rem; color:#888;">${p.sport.split('/')[1].toUpperCase()}</div>
+                <div style="font-size:0.6rem; color:#888;">LIVE NBA</div>
                 <h3 style="margin:5px 0;">${p.name}</h3>
-                <div style="color:#666; font-size:0.8rem;">Target: ${p.line} ${p.type.toUpperCase()}</div>
+                <div style="font-size:0.8rem; color:#666;">LINE: ${p.line} ${p.type.toUpperCase()}</div>
                 <div class="stat-val" style="color:${p.hit ? 'var(--green)' : '#fff'}">${p.current}</div>
-                <div style="height:6px; background:#222; border-radius:3px; overflow:hidden;">
-                    <div style="height:100%; background:${p.hit ? 'var(--green)' : 'var(--red)'}; width:${Math.min((p.current/p.line)*100, 100)}%; transition:0.5s;"></div>
-                </div>
-                <div class="streak-pill">${p.streak === 'Hot' ? '🔥 Trending Over' : '❄️ Trending Under'}</div>
+                <div style="height:4px; background:#222; border-radius:2px;"><div style="height:100%; background:${p.hit ? 'var(--green)' : 'var(--red)'}; width:${Math.min((p.current/p.line)*100, 100)}%;"></div></div>
+                ${p.hit ? '<div style="color:var(--green); font-size:0.7rem; margin-top:10px; font-weight:bold;">TICKET CASHED ✅</div>' : ''}
             </div>
         `).join('');
     }
 
-    function removeProp(i) {
-        activeProps.splice(i, 1);
-        localStorage.setItem('props_v6', JSON.stringify(activeProps));
-        renderUI();
-    }
+    function save() { localStorage.setItem('props_v8', JSON.stringify(activeProps)); renderUI(); }
+    function removeProp(i) { activeProps.splice(i, 1); save(); }
 </script>
 </body>
 </html>
