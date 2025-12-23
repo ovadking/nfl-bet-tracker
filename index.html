@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFL Pro-Tracker | Live Stats & Search</title>
+    <title>NFL Pro-Tracker | Full Control</title>
     <style>
         :root {
             --espn-red: #cc0000;
@@ -14,22 +14,14 @@
             --input-bg: #2a2a2a;
         }
 
-        [data-theme="light"] {
-            --dark-bg: #f4f4f4;
-            --card-bg: #ffffff;
-            --text-main: #1a1a1a;
-            --input-bg: #eeeeee;
-        }
-
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             background-color: var(--dark-bg);
             color: var(--text-main);
             margin: 0;
             display: flex;
             height: 100vh;
             overflow: hidden;
-            transition: background 0.3s ease;
         }
 
         #sidebar {
@@ -38,7 +30,6 @@
             padding: 25px;
             border-right: 1px solid #444;
             overflow-y: auto;
-            z-index: 10;
             display: flex;
             flex-direction: column;
         }
@@ -81,13 +72,8 @@
             border: 1px solid var(--espn-red);
             font-size: 0.85em;
             padding: 8px;
-            margin-bottom: 0;
             border-radius: 6px 6px 0 0;
-        }
-
-        .player-select-box {
-            border-radius: 0 0 6px 6px !important;
-            margin-top: 0 !important;
+            margin-top: 5px;
         }
 
         label { display: block; margin-top: 15px; font-size: 0.75em; color: #888; text-transform: uppercase; font-weight: bold; }
@@ -99,14 +85,42 @@
             box-sizing: border-box;
         }
 
-        button { background: var(--espn-red); color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        .btn-main { background: var(--espn-red); color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; height: 50px; }
         
+        .control-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-secondary {
+            background: #333;
+            color: #ccc;
+            font-size: 0.75em;
+            padding: 10px;
+            border: 1px solid #555;
+            cursor: pointer;
+        }
+
+        .btn-reset {
+            background: #441111;
+            color: #ff6666;
+            border-color: #772222;
+        }
+
         .progress-container { height: 8px; background: #333; border-radius: 4px; margin-top: 15px; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 1s ease; }
 
         .winner-badge {
             background: var(--accent-green); color: black;
             font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-left: 10px;
+        }
+
+        .remove-btn {
+            position: absolute; right: 15px; top: 15px;
+            background: none; border: none; color: #888;
+            cursor: pointer; font-size: 1.2em; width: auto !important;
         }
     </style>
 </head>
@@ -118,9 +132,9 @@
     <label>1. Select Game</label>
     <select id="game-select" onchange="loadPlayers()"></select>
 
-    <label>2. Search & Select Player</label>
-    <input type="text" id="player-search" class="search-input" placeholder="Type name to filter..." onkeyup="filterPlayers()">
-    <select id="player-select" class="player-select-box" size="5"></select>
+    <label>2. Search Player</label>
+    <input type="text" id="player-search" class="search-input" placeholder="Type to filter..." onkeyup="filterPlayers()">
+    <select id="player-select" size="5" style="border-radius: 0 0 6px 6px; margin-top:0;"></select>
 
     <label>3. Category</label>
     <select id="stat-category">
@@ -133,12 +147,18 @@
     <label>4. Your Line</label>
     <input type="number" id="bet-line" step="0.5" placeholder="e.g. 75.5">
 
-    <button onclick="addBet()">TRACK PROP</button>
-    <div id="last-update" style="font-size: 0.7em; color: #666; margin-top: 20px; text-align: center;">Syncing...</div>
+    <button class="btn-main" onclick="addBet()">TRACK NEW PROP</button>
+
+    <div class="control-group">
+        <button class="btn-secondary" onclick="manualSave()">💾 SAVE DATA</button>
+        <button class="btn-secondary btn-reset" onclick="resetAll()">🗑️ RESET ALL</button>
+    </div>
+    
+    <div id="last-update" style="font-size: 0.7em; color: #666; margin-top: 20px; text-align: center;">Syncing with ESPN...</div>
 </div>
 
 <div id="live-stats">
-    <div class="summary-banner" id="win-loss-banner">
+    <div class="summary-banner">
         <div class="summary-stat">WINS <span id="total-wins" style="color:var(--accent-green)">0</span></div>
         <div class="summary-stat">ACTIVE <span id="total-active">0</span></div>
         <div class="summary-stat">TOTAL <span id="total-bets">0</span></div>
@@ -148,7 +168,7 @@
 
 <script>
     let myBets = JSON.parse(localStorage.getItem('nfl_bets')) || [];
-    let fullRoster = []; // Holds current game roster for searching
+    let fullRoster = [];
     const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
     const winSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3');
 
@@ -159,66 +179,51 @@
     };
 
     async function fetchGames() {
-        try {
-            const res = await fetch(`${BASE_URL}/scoreboard`);
-            const data = await res.json();
-            const select = document.getElementById('game-select');
-            select.innerHTML = '<option value="">-- Select Game --</option>';
-            data.events.forEach(e => {
-                select.innerHTML += `<option value="${e.id}">${e.name} (${e.status.type.shortDetail})</option>`;
-            });
-        } catch (e) { console.error(e); }
+        const res = await fetch(`${BASE_URL}/scoreboard`);
+        const data = await res.json();
+        const select = document.getElementById('game-select');
+        select.innerHTML = '<option value="">-- Select Game --</option>';
+        data.events.forEach(e => select.innerHTML += `<option value="${e.id}">${e.name} (${e.status.type.shortDetail})</option>`);
     }
 
     async function loadPlayers() {
         const gameId = document.getElementById('game-select').value;
-        const playerSelect = document.getElementById('player-select');
-        playerSelect.innerHTML = '<option>Loading...</option>';
-        
-        try {
-            const summaryRes = await fetch(`${BASE_URL}/summary?event=${gameId}`);
-            const summaryData = await summaryRes.json();
-            const teamIds = summaryData.header.competitions[0].competitors.map(c => c.id);
+        const res = await fetch(`${BASE_URL}/summary?event=${gameId}`);
+        const data = await res.json();
+        const teamIds = data.header.competitions[0].competitors.map(c => c.id);
 
-            fullRoster = [];
-            for (let id of teamIds) {
-                const rosterRes = await fetch(`${BASE_URL}/teams/${id}/roster`);
-                const rosterData = await rosterRes.json();
-                rosterData.athletes.forEach(g => g.items.forEach(p => {
-                    fullRoster.push({id: p.id, name: p.displayName, team: rosterData.team.abbreviation});
-                }));
-            }
-            fullRoster.sort((a,b) => a.name.localeCompare(b.name));
-            renderPlayerList(fullRoster);
-        } catch(e) { playerSelect.innerHTML = '<option>Error loading</option>'; }
+        fullRoster = [];
+        for (let id of teamIds) {
+            const rosterRes = await fetch(`${BASE_URL}/teams/${id}/roster`);
+            const rosterData = await rosterRes.json();
+            rosterData.athletes.forEach(g => g.items.forEach(p => fullRoster.push({id: p.id, name: p.displayName, team: rosterData.team.abbreviation})));
+        }
+        fullRoster.sort((a,b) => a.name.localeCompare(b.name));
+        renderPlayerList(fullRoster);
     }
 
     function renderPlayerList(list) {
-        const playerSelect = document.getElementById('player-select');
-        playerSelect.innerHTML = '';
-        list.forEach(p => {
-            playerSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.team})</option>`;
-        });
+        const select = document.getElementById('player-select');
+        select.innerHTML = list.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
     }
 
     function filterPlayers() {
         const term = document.getElementById('player-search').value.toLowerCase();
-        const filtered = fullRoster.filter(p => p.name.toLowerCase().includes(term));
-        renderPlayerList(filtered);
+        renderPlayerList(fullRoster.filter(p => p.name.toLowerCase().includes(term)));
     }
 
     function addBet() {
         const gameId = document.getElementById('game-select').value;
-        const playerSelect = document.getElementById('player-select');
-        const playerId = playerSelect.value;
-        const playerName = playerSelect.options[playerSelect.selectedIndex]?.text;
+        const pSelect = document.getElementById('player-select');
+        const playerId = pSelect.value;
+        const playerName = pSelect.options[pSelect.selectedIndex]?.text;
         const category = document.getElementById('stat-category').value;
         const line = parseFloat(document.getElementById('bet-line').value);
 
-        if(!gameId || !playerId || isNaN(line)) return alert("Please select a game, player, and line.");
+        if(!gameId || !playerId || isNaN(line)) return alert("Missing fields");
 
         myBets.push({ gameId, playerId, playerName, category, line, currentStat: 0, hasAlerted: false, gameStatus: 'Live' });
-        saveAndRefresh();
+        manualSave();
     }
 
     async function refreshStats() {
@@ -234,7 +239,8 @@
                     team.statistics.forEach(group => {
                         const athlete = group.athletes.find(a => a.athlete.id === bet.playerId);
                         if(athlete) {
-                            const idx = group.labels.indexOf(getLabel(bet.category));
+                            const labels = group.labels;
+                            const idx = labels.indexOf({rushingYards:"YDS", passingYards:"YDS", receivingYards:"YDS", receptions:"REC"}[bet.category]);
                             if(idx !== -1) val = parseFloat(athlete.stats[idx].toString().split('/')[0]) || 0;
                         }
                     });
@@ -243,25 +249,18 @@
                 bet.currentStat = val;
             } catch (e) {}
         }
-        saveAndRefresh();
-    }
-
-    function getLabel(cat) { return {rushingYards:"YDS", passingYards:"YDS", receivingYards:"YDS", receptions:"REC"}[cat]; }
-
-    function saveAndRefresh() {
-        localStorage.setItem('nfl_bets', JSON.stringify(myBets));
         updateUI();
+        document.getElementById('last-update').textContent = "Updated: " + new Date().toLocaleTimeString();
     }
 
     function updateUI() {
         const container = document.getElementById('bets-container');
-        container.innerHTML = '';
+        container.innerHTML = myBets.length ? '' : '<p style="color:#555">No active bets.</p>';
         
         let wins = 0;
         myBets.forEach((b, i) => {
             const isOver = b.currentStat >= b.line;
             if(isOver) wins++;
-            
             container.innerHTML += `
                 <div class="bet-card ${isOver ? 'winner' : ''}">
                     <button class="remove-btn" onclick="removeBet(${i})">✕</button>
@@ -269,16 +268,34 @@
                     <div style="font-weight:bold">${b.playerName} ${isOver ? '<span class="winner-badge">WINNER</span>' : ''}</div>
                     <div style="font-size:0.8em; color:#888">${b.category.toUpperCase()} | LINE: ${b.line}</div>
                     <div class="stat-value">${b.currentStat}</div>
-                    <div class="progress-container"><div class="progress-fill" style="width:${Math.min((b.currentStat/b.line)*100, 100)}%; background:${isOver ? 'var(--accent-green)' : 'var(--espn-red)'}"></div></div>
+                    <div class="progress-container">
+                        <div class="progress-fill" style="width:${Math.min((b.currentStat/b.line)*100, 100)}%; background:${isOver ? 'var(--accent-green)' : 'var(--espn-red)'}"></div>
+                    </div>
                 </div>`;
         });
-
         document.getElementById('total-wins').textContent = wins;
         document.getElementById('total-active').textContent = myBets.length - wins;
         document.getElementById('total-bets').textContent = myBets.length;
     }
 
-    function removeBet(i) { myBets.splice(i, 1); saveAndRefresh(); }
+    function manualSave() {
+        localStorage.setItem('nfl_bets', JSON.stringify(myBets));
+        updateUI();
+    }
+
+    function resetAll() {
+        if(confirm("Wipe all active bets and start over?")) {
+            myBets = [];
+            localStorage.removeItem('nfl_bets');
+            updateUI();
+        }
+    }
+
+    function removeBet(i) {
+        myBets.splice(i, 1);
+        manualSave();
+    }
+
     setInterval(refreshStats, 30000);
 </script>
 </body>
