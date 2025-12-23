@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFL Pro-Tracker | Live Stats</title>
+    <title>NFL Pro-Tracker | Live Stats, Alerts & Persistence</title>
     <style>
         :root {
             --espn-red: #cc0000;
@@ -11,7 +11,16 @@
             --card-bg: #1a1a1a;
             --accent-green: #00ff88;
             --text-main: #e0e0e0;
+            --input-bg: #2a2a2a;
         }
+
+        [data-theme="light"] {
+            --dark-bg: #f4f4f4;
+            --card-bg: #ffffff;
+            --text-main: #1a1a1a;
+            --input-bg: #eeeeee;
+        }
+
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--dark-bg);
@@ -20,100 +29,89 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
+            transition: background 0.3s ease;
         }
-        /* Left Panel - Input */
+
         #sidebar {
             width: 350px;
             background-color: var(--card-bg);
             padding: 25px;
             border-right: 1px solid #333;
             overflow-y: auto;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.2);
             z-index: 10;
+            display: flex;
+            flex-direction: column;
         }
-        /* Right Panel - Display */
+
         #live-stats {
             flex-grow: 1;
             padding: 30px;
             overflow-y: auto;
-            background: radial-gradient(circle at top right, #1a1a1a, #0f0f0f);
         }
+
         .bet-card {
-            background: #252525;
+            background: var(--input-bg);
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 20px;
             border-left: 6px solid var(--espn-red);
             position: relative;
-            transition: transform 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .bet-card:hover { transform: scale(1.01); }
+
+        .bet-card.winner {
+            border-left-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.1);
+            animation: flash 1.5s infinite alternate;
+        }
+
+        @keyframes flash {
+            from { box-shadow: 0 0 5px rgba(0, 255, 136, 0.1); }
+            to { box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+        }
+
         .game-info-bar {
             font-size: 0.8em;
-            color: #aaa;
-            background: #111;
+            color: #888;
+            background: rgba(0,0,0,0.1);
             padding: 5px 10px;
             border-radius: 4px;
-            display: inline-block;
             margin-bottom: 10px;
+            display: inline-block;
         }
-        .stat-grid {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .stat-value {
-            font-size: 2.5em;
-            font-weight: 800;
-        }
+
+        .stat-value { font-size: 2.5em; font-weight: 800; }
+
         .remove-btn {
-            position: absolute;
-            right: 15px;
-            top: 15px;
-            background: none;
-            border: none;
-            color: #555;
-            cursor: pointer;
-            font-size: 1.2em;
-            width: auto !important;
+            position: absolute; right: 15px; top: 15px;
+            background: none; border: none; color: #888;
+            cursor: pointer; font-size: 1.2em; width: auto !important;
         }
-        .remove-btn:hover { color: white; }
+
+        label { display: block; margin-top: 15px; font-size: 0.75em; color: #888; text-transform: uppercase; font-weight: bold; }
         
-        /* UI Elements */
-        label { display: block; margin-top: 15px; font-size: 0.85em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         select, input, button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 5px;
-            border-radius: 6px;
-            border: 1px solid #333;
-            background: #2a2a2a;
-            color: white;
-            font-size: 1em;
+            width: 100%; padding: 12px; margin-top: 5px;
+            border-radius: 6px; border: 1px solid #444;
+            background: var(--input-bg); color: var(--text-main);
             box-sizing: border-box;
         }
-        button {
-            background-color: var(--espn-red);
-            border: none;
-            margin-top: 25px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
+
+        button { background: var(--espn-red); color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        button:hover { filter: brightness(1.2); }
+
+        .progress-container { height: 8px; background: #333; border-radius: 4px; margin-top: 15px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 1s ease; }
+
+        .theme-toggle {
+            margin-top: auto; padding-top: 20px;
+            text-align: center; font-size: 0.8em; cursor: pointer; color: var(--espn-red);
         }
-        button:hover { background-color: #ff0000; }
-        .progress-container {
-            height: 10px;
-            background: #111;
-            border-radius: 5px;
-            margin-top: 15px;
-            overflow: hidden;
-        }
-        .progress-fill { height: 100%; transition: width 1s ease-in-out; }
-        .refresh-status {
-            text-align: center;
-            font-size: 0.75em;
-            color: #666;
-            margin-top: 20px;
+
+        .winner-badge {
+            background: var(--accent-green); color: black;
+            font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-left: 10px;
         }
     </style>
 </head>
@@ -122,17 +120,13 @@
 <div id="sidebar">
     <h2 style="color:var(--espn-red); margin-top:0;">NFL TRACKER</h2>
     
-    <label>Active Games</label>
-    <select id="game-select" onchange="loadPlayers()">
-        <option>Scanning for games...</option>
-    </select>
+    <label>Game</label>
+    <select id="game-select" onchange="loadPlayers()"></select>
 
-    <label>Player (Full Roster)</label>
-    <select id="player-select">
-        <option>Select game first...</option>
-    </select>
+    <label>Player</label>
+    <select id="player-select"></select>
 
-    <label>Stat Category</label>
+    <label>Category</label>
     <select id="stat-category">
         <option value="rushingYards">Rushing Yards</option>
         <option value="passingYards">Passing Yards</option>
@@ -140,79 +134,68 @@
         <option value="receptions">Receptions</option>
     </select>
 
-    <label>Your Line (Over/Under)</label>
-    <input type="number" id="bet-line" step="0.5" placeholder="e.g. 82.5">
+    <label>Line</label>
+    <input type="number" id="bet-line" step="0.5" placeholder="e.g. 75.5">
 
-    <button onclick="addBet()">TRACK PROPS</button>
+    <button onclick="addBet()">START TRACKING</button>
     
-    <div class="refresh-status" id="last-update">Syncing with ESPN...</div>
+    <div id="last-update" style="font-size: 0.7em; color: #666; margin-top: 20px; text-align: center;">Syncing...</div>
+    
+    <div class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Light/Dark Mode</div>
 </div>
 
 <div id="live-stats">
-    <h1 style="margin-top:0;">Live Props</h1>
-    <div id="bets-container">
-        <p style="color:#555">No active bets. Add a player to begin tracking.</p>
-    </div>
+    <h1 id="header-title">Active Bets</h1>
+    <div id="bets-container"></div>
 </div>
 
 <script>
-    let myBets = [];
+    let myBets = JSON.parse(localStorage.getItem('nfl_bets')) || [];
     const BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
+    const winSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3');
 
-    // 1. Fetch Current Scoreboard
+    // 1. Initial Load
+    window.onload = () => {
+        fetchGames();
+        updateUI();
+        refreshStats();
+        if(localStorage.getItem('theme') === 'light') toggleTheme(true);
+    };
+
     async function fetchGames() {
         try {
             const res = await fetch(`${BASE_URL}/scoreboard`);
             const data = await res.json();
             const select = document.getElementById('game-select');
-            select.innerHTML = '<option value="">-- Choose a Game --</option>';
-            
+            select.innerHTML = '<option value="">-- Select Game --</option>';
             data.events.forEach(e => {
                 const opt = document.createElement('option');
                 opt.value = e.id;
-                // Show game status in dropdown (e.g., "KC @ BAL - 3rd Qtr")
-                const status = e.status.type.shortDetail;
-                opt.textContent = `${e.name} (${status})`;
+                opt.textContent = `${e.name} (${e.status.type.shortDetail})`;
                 select.appendChild(opt);
             });
-        } catch (err) { console.error("Game Fetch Error", err); }
+        } catch (e) { console.error(e); }
     }
 
-    // 2. Fetch Full Rosters for the Selected Game
     async function loadPlayers() {
         const gameId = document.getElementById('game-select').value;
-        if (!gameId) return;
         const playerSelect = document.getElementById('player-select');
-        playerSelect.innerHTML = '<option>Loading Full Roster...</option>';
+        playerSelect.innerHTML = '<option>Loading...</option>';
+        const summaryRes = await fetch(`${BASE_URL}/summary?event=${gameId}`);
+        const summaryData = await summaryRes.json();
+        const teamIds = summaryData.header.competitions[0].competitors.map(c => c.id);
 
-        try {
-            const summaryRes = await fetch(`${BASE_URL}/summary?event=${gameId}`);
-            const summaryData = await summaryRes.json();
-            const teamIds = summaryData.header.competitions[0].competitors.map(c => c.id);
-
-            let allPlayers = [];
-            for (let id of teamIds) {
-                const rosterRes = await fetch(`${BASE_URL}/teams/${id}/roster`);
-                const rosterData = await rosterRes.json();
-                rosterData.athletes.forEach(group => {
-                    group.items.forEach(p => {
-                        allPlayers.push({ id: p.id, name: p.displayName, team: rosterData.team.abbreviation });
-                    });
-                });
-            }
-
-            allPlayers.sort((a, b) => a.name.localeCompare(b.name));
-            playerSelect.innerHTML = '<option value="">-- Select Player --</option>';
-            allPlayers.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = `${p.name} (${p.team})`;
-                playerSelect.appendChild(opt);
-            });
-        } catch (e) { playerSelect.innerHTML = '<option>Error loading rosters</option>'; }
+        let players = [];
+        for (let id of teamIds) {
+            const rosterRes = await fetch(`${BASE_URL}/teams/${id}/roster`);
+            const rosterData = await rosterRes.json();
+            rosterData.athletes.forEach(g => g.items.forEach(p => players.push({id: p.id, name: p.displayName, team: rosterData.team.abbreviation})));
+        }
+        players.sort((a,b) => a.name.localeCompare(b.name));
+        playerSelect.innerHTML = '<option value="">-- Select Player --</option>';
+        players.forEach(p => playerSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.team})</option>`);
     }
 
-    // 3. Add to Tracking List
     function addBet() {
         const gameId = document.getElementById('game-select').value;
         const playerId = document.getElementById('player-select').value;
@@ -220,113 +203,73 @@
         const category = document.getElementById('stat-category').value;
         const line = parseFloat(document.getElementById('bet-line').value);
 
-        if (!gameId || !playerId || isNaN(line)) return alert("Please complete all fields!");
+        if(!gameId || !playerId || isNaN(line)) return alert("Fill all fields");
 
-        myBets.push({
-            gameId, playerId, playerName, category, line,
-            currentStat: 0,
-            gameStatus: 'Loading...',
-            lastPlay: ''
-        });
-        
-        updateUI();
-        refreshStats(); // Immediate sync
+        myBets.push({ gameId, playerId, playerName, category, line, currentStat: 0, hasAlerted: false, gameStatus: 'Live' });
+        saveAndRefresh();
     }
 
-    // 4. THE ACCURACY ENGINE (Deep Boxscore Scan)
     async function refreshStats() {
         for (let bet of myBets) {
             try {
                 const res = await fetch(`${BASE_URL}/summary?event=${bet.gameId}`);
                 const data = await res.json();
-                
-                // Update Game Context
                 bet.gameStatus = data.header.competitions[0].status.type.shortDetail;
-                if (data.situation) {
-                    bet.lastPlay = data.situation.lastPlay ? data.situation.lastPlay.text : "";
-                }
+                if(data.situation) bet.lastPlay = data.situation.lastPlay?.text || "";
 
-                // Deep Scan Boxscore
-                let statFound = 0;
-                if (data.boxscore && data.boxscore.players) {
-                    data.boxscore.players.forEach(team => {
-                        team.statistics.forEach(statGroup => {
-                            const athlete = statGroup.athletes.find(a => a.athlete.id === bet.playerId);
-                            if (athlete) {
-                                const labels = statGroup.labels;
-                                const target = getESPNLabel(bet.category);
-                                const idx = labels.indexOf(target);
-                                if (idx !== -1) {
-                                    const rawValue = athlete.stats[idx];
-                                    statFound = parseFloat(rawValue.toString().split('/')[0]) || 0;
-                                }
-                            }
-                        });
+                let val = 0;
+                data.boxscore.players.forEach(team => {
+                    team.statistics.forEach(group => {
+                        const athlete = group.athletes.find(a => a.athlete.id === bet.playerId);
+                        if(athlete) {
+                            const idx = group.labels.indexOf(getLabel(bet.category));
+                            if(idx !== -1) val = parseFloat(athlete.stats[idx].toString().split('/')[0]) || 0;
+                        }
                     });
-                }
-                bet.currentStat = statFound;
-            } catch (e) { console.error("Sync Error", e); }
+                });
+                if(val >= bet.line && !bet.hasAlerted) { winSound.play().catch(e => {}); bet.hasAlerted = true; }
+                bet.currentStat = val;
+            } catch (e) {}
         }
-        updateUI();
-        document.getElementById('last-update').textContent = "Last broadcast sync: " + new Date().toLocaleTimeString();
+        saveAndRefresh();
+        document.getElementById('last-update').textContent = "Updated: " + new Date().toLocaleTimeString();
     }
 
-    function getESPNLabel(cat) {
-        const map = { "rushingYards": "YDS", "passingYards": "YDS", "receivingYards": "YDS", "receptions": "REC" };
-        return map[cat];
+    function getLabel(cat) { return {rushingYards:"YDS", passingYards:"YDS", receivingYards:"YDS", receptions:"REC"}[cat]; }
+
+    function saveAndRefresh() {
+        localStorage.setItem('nfl_bets', JSON.stringify(myBets));
+        updateUI();
     }
 
     function updateUI() {
         const container = document.getElementById('bets-container');
-        if (myBets.length === 0) {
-            container.innerHTML = '<p style="color:#555">No active bets.</p>';
-            return;
-        }
-        
-        container.innerHTML = '';
-        myBets.forEach((bet, i) => {
-            const progress = Math.min((bet.currentStat / bet.line) * 100, 100);
-            const isOver = bet.currentStat >= bet.line;
-            const color = isOver ? varProp('--accent-green') : varProp('--espn-red');
-            const diff = (bet.line - bet.currentStat).toFixed(1);
-
+        container.innerHTML = myBets.length ? '' : '<p style="color:#666">No tracked bets.</p>';
+        myBets.forEach((b, i) => {
+            const isOver = b.currentStat >= b.line;
             container.innerHTML += `
-                <div class="bet-card">
+                <div class="bet-card ${isOver ? 'winner' : ''}">
                     <button class="remove-btn" onclick="removeBet(${i})">✕</button>
-                    <div class="game-info-bar">${bet.gameStatus}</div>
-                    <div style="font-size:1.1em; font-weight:bold;">${bet.playerName}</div>
-                    <div style="color:#888; font-size:0.8em; margin-bottom:10px;">
-                        ${bet.category.toUpperCase()} | LINE: ${bet.line}
-                    </div>
-                    
-                    <div class="stat-grid">
-                        <div class="stat-value" style="color:${isOver ? '#00ff88' : '#fff'}">
-                            ${bet.currentStat}
-                        </div>
-                        <div style="text-align:right">
-                            <span style="color:${isOver ? '#00ff88' : '#ff9800'}">
-                                ${isOver ? '✅ OVER' : diff + ' to go'}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="progress-container">
-                        <div class="progress-fill" style="width:${progress}%; background:${isOver ? '#00ff88' : '#cc0000'}"></div>
-                    </div>
-                    ${bet.lastPlay ? `<div style="font-size:0.7em; color:#555; margin-top:10px; font-style:italic;">Last Play: ${bet.lastPlay.substring(0, 80)}...</div>` : ''}
-                </div>
-            `;
+                    <div class="game-info-bar">${b.gameStatus}</div>
+                    <div style="font-weight:bold">${b.playerName} ${isOver ? '<span class="winner-badge">WINNER</span>' : ''}</div>
+                    <div style="font-size:0.8em; color:#888">${b.category.toUpperCase()} | LINE: ${b.line}</div>
+                    <div class="stat-value" style="color:${isOver ? 'var(--accent-green)' : 'inherit'}">${b.currentStat}</div>
+                    <div class="progress-container"><div class="progress-fill" style="width:${Math.min((b.currentStat/b.line)*100, 100)}%; background:${isOver ? 'var(--accent-green)' : 'var(--espn-red)'}"></div></div>
+                    <div style="font-size:0.7em; color:#666; margin-top:10px;">${b.lastPlay ? 'Last: ' + b.lastPlay.substring(0,80) : ''}</div>
+                </div>`;
         });
     }
 
-    function varProp(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
-    function removeBet(i) { myBets.splice(i, 1); updateUI(); }
+    function removeBet(i) { myBets.splice(i, 1); saveAndRefresh(); }
 
-    // Init and Timers
-    fetchGames();
-    setInterval(fetchGames, 60000); // Refresh game list every minute
-    setInterval(refreshStats, 30000); // Refresh stats every 30 seconds
+    function toggleTheme(init = false) {
+        const body = document.body;
+        if(!init) body.setAttribute('data-theme', body.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+        else body.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', body.getAttribute('data-theme'));
+    }
+
+    setInterval(refreshStats, 30000);
 </script>
-
 </body>
 </html>
