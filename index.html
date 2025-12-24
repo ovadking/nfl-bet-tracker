@@ -3,52 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Prop Tracker v17 - Parlay Master</title>
+    <title>Pro Prop Tracker v20 - Pre-Game Master</title>
     <style>
         :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; --yellow: #ffcc00; --gold: #ffd700; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         #sidebar { width: 380px; background: var(--card); padding: 20px; border-right: 1px solid #333; overflow-y: auto; }
         h2 { color: var(--red); font-size: 1.1rem; margin-bottom: 20px; letter-spacing: 2px; }
-        label { font-size: 0.6rem; color: #777; font-weight: 800; margin-top: 12px; display: block; text-transform: uppercase; }
-        select, input, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 0.85rem; box-sizing: border-box; }
-        .parlay-builder { background: #111; padding: 15px; border-radius: 12px; border: 1px dashed #444; margin-top: 15px; }
-        .btn-add-leg { background: #333; color: var(--green); border: 1px solid var(--green); cursor: pointer; margin-bottom: 10px; font-weight: bold; }
-        .btn-finalize { background: var(--green); color: #000; border: none; font-weight: 900; cursor: pointer; height: 45px; }
+        label { font-size: 0.6rem; color: #777; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
+        select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 0.85rem; box-sizing: border-box; }
+        .builder-box { background: #111; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-top: 10px; }
+        .btn-add-leg { background: #333; color: var(--green); border: 1px solid var(--green); cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-finalize { background: var(--green); color: #000; border: none; font-weight: 900; cursor: pointer; height: 45px; margin-top: 15px; }
         #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 25px; }
-        .parlay-card { background: var(--card); border-radius: 16px; border: 2px solid #333; overflow: hidden; position: relative; }
-        .parlay-card.complete { border-color: var(--gold); box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
-        .parlay-header { background: #222; padding: 12px 20px; font-weight: 900; font-size: 0.8rem; display: flex; justify-content: space-between; }
+        .parlay-card { background: var(--card); border-radius: 16px; border: 2px solid #333; overflow: hidden; margin-bottom: 20px; }
+        .parlay-card.complete { border-color: var(--gold); box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
+        .parlay-header { background: #222; padding: 12px 20px; font-weight: 900; font-size: 0.7rem; display: flex; justify-content: space-between; }
         .leg { padding: 15px 20px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
-        .leg.hit { background: rgba(0, 255, 136, 0.05); }
-        .leg-name { font-weight: bold; font-size: 0.9rem; }
-        .leg-stats { text-align: right; }
-        .check { color: var(--green); font-weight: bold; margin-left: 10px; }
+        .leg.hit { background: rgba(0, 255, 136, 0.08); }
+        .leg-name { font-weight: bold; font-size: 0.95rem; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>PARLAY TRACKER v17</h2>
+    <h2>PROP TRACKER v20</h2>
     
-    <button onclick="Notification.requestPermission()" style="background:var(--yellow); color:#000; font-weight:bold; margin-bottom:20px;">🔔 ACTIVATE ALERTS</button>
+    <button onclick="Notification.requestPermission()" style="background:var(--yellow); color:#000; font-weight:bold;">🔔 ENABLE NOTIFICATIONS</button>
 
-    <div class="parlay-builder">
-        <div style="color:var(--yellow); font-weight:bold; font-size:0.7rem; margin-bottom:10px;">BUILD NEW PARLAY</div>
-        <label>Sport</label>
-        <select id="sport" onchange="fetchGames()"><option value="basketball/nba">NBA</option><option value="football/nfl">NFL</option></select>
-        <label>Game</label>
-        <select id="game-select" onchange="fetchRoster()"></select>
-        <label>Player</label>
+    <div class="builder-box">
+        <label>1. Select Sport</label>
+        <select id="sport-select" onchange="loadGames()">
+            <option value="basketball/nba">NBA</option>
+            <option value="football/nfl">NFL</option>
+        </select>
+
+        <label>2. Select Game (Today)</label>
+        <select id="game-select" onchange="loadTeamRosters()"></select>
+
+        <label>3. Select Player (Full Roster)</label>
         <select id="player-select"></select>
-        <label>Target</label>
+
+        <label>4. Set Target</label>
         <div style="display:flex; gap:5px;">
-            <select id="stat-type" style="flex:1;"><option value="PTS">Points</option><option value="REB">Rebounds</option><option value="AST">Assists</option></select>
+            <select id="stat-type" style="flex:1.5;"><option value="PTS">Points</option><option value="REB">Rebounds</option><option value="AST">Assists</option></select>
             <input type="number" id="target-val" step="0.5" placeholder="Line" style="flex:1;">
         </div>
-        <button class="btn-add-leg" onclick="addLegToDraft()">+ ADD LEG TO PARLAY</button>
         
-        <div id="draft-list" style="font-size:0.7rem; color:#aaa; margin:10px 0;"></div>
+        <button class="btn-add-leg" onclick="addLeg()">+ ADD TO PARLAY</button>
+        <div id="draft-list" style="font-size:0.7rem; color:var(--yellow); margin:10px 0;"></div>
         <button class="btn-finalize" onclick="finalizeParlay()">🚀 DEPLOY PARLAY</button>
     </div>
 </div>
@@ -56,36 +59,60 @@
 <div id="main"><div id="parlay-grid" class="grid"></div></div>
 
 <script>
-    let activeParlays = JSON.parse(localStorage.getItem('parlays_v17')) || [];
+    let activeParlays = JSON.parse(localStorage.getItem('parlays_v20')) || [];
     let draftLegs = [];
 
-    async function fetchGames() {
-        const s = document.getElementById('sport').value;
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${s}/scoreboard`);
+    async function loadGames() {
+        const sport = document.getElementById('sport-select').value;
+        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard`);
         const data = await res.json();
-        document.getElementById('game-select').innerHTML = data.events.map(e => `<option value="${e.id}">${e.shortName}</option>`).join('');
-        fetchRoster();
+        const select = document.getElementById('game-select');
+        
+        select.innerHTML = data.events.map(e => {
+            const team1 = e.competitions[0].competitors[0].team.id;
+            const team2 = e.competitions[0].competitors[1].team.id;
+            return `<option value="${e.id}" data-t1="${team1}" data-t2="${team2}">${e.shortName}</option>`;
+        }).join('');
+        loadTeamRosters();
     }
 
-    async function fetchRoster() {
-        const s = document.getElementById('sport').value;
-        const g = document.getElementById('game-select').value;
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${s}/summary?event=${g}`);
-        const data = await res.json();
-        let p = [];
-        data.boxscore?.players?.forEach(t => t.statistics[0].athletes.forEach(a => p.push({id: a.athlete.id, name: a.athlete.displayName})));
-        document.getElementById('player-select').innerHTML = p.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+    async function loadTeamRosters() {
+        const sport = document.getElementById('sport-select').value;
+        const gameOpt = document.getElementById('game-select').selectedOptions[0];
+        const t1 = gameOpt.dataset.t1;
+        const t2 = gameOpt.dataset.t2;
+
+        const pSelect = document.getElementById('player-select');
+        pSelect.innerHTML = "<option>Loading Roster...</option>";
+
+        try {
+            const [res1, res2] = await Promise.all([
+                fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${t1}/roster`),
+                fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${t2}/roster`)
+            ]);
+            const [d1, d2] = await Promise.all([res1.json(), res2.json()]);
+
+            const allPlayers = [...d1.athletes.flatMap(g => g.items), ...d2.athletes.flatMap(g => g.items)];
+            pSelect.innerHTML = allPlayers
+                .sort((a, b) => a.displayName.localeCompare(b.displayName))
+                .map(p => `<option value="${p.id}">${p.displayName}</option>`).join('');
+        } catch (e) {
+            pSelect.innerHTML = "<option>Error loading players</option>";
+        }
     }
 
-    function addLegToDraft() {
+    function addLeg() {
         const p = document.getElementById('player-select');
+        const target = parseFloat(document.getElementById('target-val').value);
+        if (!p.value || isNaN(target)) return;
+
         draftLegs.push({
             id: p.value,
             name: p.options[p.selectedIndex].text,
-            sport: document.getElementById('sport').value,
             gameId: document.getElementById('game-select').value,
+            sport: document.getElementById('sport-select').value,
             type: document.getElementById('stat-type').value,
-            target: parseFloat(document.getElementById('target-val').value),
+            target: target,
             current: 0, hit: false
         });
         document.getElementById('draft-list').innerHTML = draftLegs.map(l => `<div>• ${l.name} ${l.target} ${l.type}</div>`).join('');
@@ -106,6 +133,7 @@
                 try {
                     const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${leg.sport}/summary?event=${leg.gameId}`);
                     const data = await res.json();
+                    
                     data.boxscore?.players?.forEach(t => {
                         const stats = t.statistics[0];
                         const athlete = stats.athletes.find(a => a.athlete.id === leg.id);
@@ -120,7 +148,7 @@
             }
             if(allHit && !parlay.won) {
                 parlay.won = true;
-                new Notification("💰 PARLAY HIT!", { body: "All legs have cleared! Collect your green." });
+                if (Notification.permission === "granted") new Notification("💰 PARLAY HIT!");
             }
         }
         render();
@@ -131,17 +159,13 @@
             <div class="parlay-card ${parlay.won ? 'complete' : ''}">
                 <div class="parlay-header">
                     <span>${parlay.legs.length}-LEG PARLAY</span>
-                    <button onclick="removeParlay(${idx})" style="width:auto; padding:0; background:none; border:none; color:#555; cursor:pointer;">REMOVE</button>
+                    <span style="cursor:pointer; color:#ff3e3e;" onclick="removeParlay(${idx})">REMOVE</span>
                 </div>
                 ${parlay.legs.map(l => `
                     <div class="leg ${l.hit ? 'hit' : ''}">
-                        <div>
-                            <div class="leg-name">${l.name}</div>
-                            <div style="font-size:0.6rem; color:#666;">${l.target} ${l.type}</div>
-                        </div>
-                        <div class="leg-stats">
-                            <span style="font-size:1.2rem; font-weight:900; color:${l.hit ? 'var(--green)' : '#fff'}">${l.current}</span>
-                            ${l.hit ? '<span class="check">✓</span>' : ''}
+                        <div><div class="leg-name">${l.name}</div><div style="font-size:0.6rem; color:#666;">Target: ${l.target} ${l.type}</div></div>
+                        <div style="text-align:right;">
+                            <span style="font-size:1.3rem; font-weight:900; color:${l.hit ? 'var(--green)' : '#fff'}">${l.current}</span>
                         </div>
                     </div>
                 `).join('')}
@@ -149,10 +173,10 @@
         `).join('');
     }
 
-    function save() { localStorage.setItem('parlays_v17', JSON.stringify(activeParlays)); render(); }
+    function save() { localStorage.setItem('parlays_v20', JSON.stringify(activeParlays)); render(); }
     function removeParlay(i) { activeParlays.splice(i, 1); save(); }
 
-    fetchGames();
+    loadGames();
     setInterval(updateStats, 20000);
 </script>
 </body>
