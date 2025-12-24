@@ -3,202 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Prop Tracker v15 - Intelligence Edition</title>
+    <title>Live Sports Broadcast - NBA & NFL</title>
     <style>
-        :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; --yellow: #ffcc00; --blue: #00d4ff; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        #sidebar { width: 380px; background: var(--card); padding: 20px; border-right: 1px solid #333; overflow-y: auto; display: flex; flex-direction: column; }
-        h2 { color: var(--red); font-size: 1.2rem; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px; }
-        label { font-size: 0.65rem; color: #777; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
-        select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
+        :root { --bg: #050505; --card: #121212; --accent: #ff3e3e; --text: #eee; --live: #00ff88; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        /* Insight Box */
-        #insight-box { background: #111; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-top: 15px; display: none; border-left: 4px solid var(--blue); }
-        .insight-tag { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-right: 5px; }
-        .hot { background: var(--red); color: white; }
-        .cold { background: var(--blue); color: white; }
-
-        .search-wrap { background: #222; border-radius: 8px; border: 1px solid #333; margin-top: 5px; }
-        #player-select { height: 140px; background: #1a1a1a; border: none; border-top: 1px solid #333; width: 100%; color: white; }
-        .btn-add { background: var(--red); border: none; font-weight: bold; cursor: pointer; height: 50px; margin-top: 20px; }
-        #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; color: var(--accent); }
+        .live-indicator { font-size: 0.8rem; background: rgba(0, 255, 136, 0.1); color: var(--live); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--live); animation: pulse 2s infinite; }
         
-        .card { background: var(--card); padding: 20px; border-radius: 16px; border-top: 4px solid #333; position: relative; }
-        .prediction-text { font-size: 0.7rem; color: var(--yellow); font-weight: bold; margin-top: 10px; }
-        .stat-val { font-size: 3.5rem; font-weight: 900; margin: 5px 0; }
-        .remove { position: absolute; right: 15px; top: 15px; cursor: pointer; color: #444; background: none; border: none; }
+        .broadcast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        
+        .game-card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid #222; transition: transform 0.2s; }
+        .game-card:hover { border-color: #444; transform: translateY(-3px); }
+        
+        .league-tag { font-size: 0.6rem; font-weight: 900; background: #333; padding: 3px 8px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .game-status { float: right; font-size: 0.75rem; color: #888; font-weight: bold; }
+        
+        .team-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        .team-info { display: flex; align-items: center; gap: 12px; }
+        .team-logo { width: 35px; height: 35px; object-fit: contain; }
+        .team-name { font-size: 1.1rem; font-weight: 600; }
+        .score { font-size: 1.5rem; font-weight: 900; color: #fff; }
+        
+        .odds-row { margin-top: 15px; padding-top: 10px; border-top: 1px solid #222; font-size: 0.75rem; color: #666; display: flex; justify-content: space-between; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <h2>PRO TRACKER V15</h2>
-    
-    <label>1. Sport</label>
-    <select id="sport-select" onchange="fetchSchedule()">
-        <option value="basketball/nba">NBA Basketball</option>
-        <option value="football/nfl">NFL Football</option>
-    </select>
-
-    <label>2. Matchup</label>
-    <select id="game-select" onchange="loadRosters()"></select>
-
-    <label>3. Find Player</label>
-    <div class="search-wrap">
-        <input type="text" id="p-search" placeholder="Type name..." onkeyup="filterRoster()">
-        <select id="player-select" size="6" onchange="fetchInsights()"></select>
-    </div>
-    <button onclick="manualAdd()" style="background:none; border:1px dashed #444; font-size:0.6rem; color:#888; margin-top:5px; cursor:pointer;">Manual Add</button>
-
-    <div id="insight-box">
-        <div id="insight-header" style="font-weight:bold; font-size:0.8rem; color:var(--blue);">Insights</div>
-        <div id="insight-content" style="font-size:0.75rem; color:#aaa; margin-top:5px; line-height:1.4;"></div>
-    </div>
-
-    <label>4. Prop & Line</label>
-    <div style="display: flex; gap: 5px;">
-        <select id="prop-type" style="flex: 2;">
-            <option value="pts">Points</option>
-            <option value="reb">Rebounds</option>
-            <option value="ast">Assists</option>
-        </select>
-        <input type="number" id="bet-line" step="0.5" placeholder="Line">
-    </div>
-
-    <button class="btn-add" onclick="addProp()">ADD TO TRACKER</button>
+<div class="header">
+    <h1>BROADCAST CENTER</h1>
+    <div id="update-time" style="font-size: 0.7rem; color: #555;">Updating...</div>
+    <div class="live-indicator">LIVE FEED</div>
 </div>
 
-<div id="main">
-    <div id="bets-container" class="grid"></div>
-</div>
+<div id="broadcast-container" class="broadcast-grid">
+    </div>
 
 <script>
-    let activeProps = JSON.parse(localStorage.getItem('props_v15')) || [];
-    let fullRoster = [];
-    let currentInsights = "";
+    async function updateBroadcast() {
+        const sports = [
+            { league: 'nba', sport: 'basketball' },
+            { league: 'nfl', sport: 'football' }
+        ];
+        
+        let allGames = [];
 
-    window.onload = () => { fetchSchedule(); renderUI(); setInterval(() => refreshLiveStats(), 15000); };
-
-    async function fetchSchedule() {
-        const sport = document.getElementById('sport-select').value;
-        const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-        try {
-            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard?dates=${today}`);
-            const data = await res.json();
-            document.getElementById('game-select').innerHTML = data.events.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-            loadRosters();
-        } catch(e) {}
-    }
-
-    async function loadRosters() {
-        const sport = document.getElementById('sport-select').value;
-        const gameId = document.getElementById('game-select').value;
-        fullRoster = [];
-        try {
-            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`);
-            const data = await res.json();
-            data.boxscore?.players?.forEach(t => t.statistics[0].athletes.forEach(a => {
-                fullRoster.push({ id: a.athlete.id, name: a.athlete.displayName, team: t.team.abbreviation, opponent: data.header.competitions[0].competitors.find(c => c.team.abbreviation !== t.team.abbreviation).team.displayName });
-            }));
-            filterRoster();
-        } catch(e) {}
-    }
-
-    async function fetchInsights() {
-        const pSel = document.getElementById('player-select');
-        const playerId = pSel.value;
-        const sport = document.getElementById('sport-select').value;
-        const player = fullRoster.find(p => p.id === playerId);
-        const box = document.getElementById('insight-box');
-        const content = document.getElementById('insight-content');
-
-        if(!player) return;
-        box.style.display = 'block';
-        content.innerText = "Analyzing trends...";
-
-        try {
-            const res = await fetch(`https://site.api.espn.com/apis/common/v3/sports/${sport}/athletes/${playerId}/stats`);
-            const data = await res.json();
-            
-            // Mocking trend logic based on historical season avg vs last year for display
-            const avg = data.athlete.statsSummary?.statistics?.[0]?.displayValue || "N/A";
-            const streak = Math.random() > 0.5 ? "HOT" : "NEUTRAL";
-            
-            currentInsights = `
-                <span class="insight-tag ${streak === 'HOT' ? 'hot' : ''}">${streak}</span> 
-                Avg ${avg} this season. <br>
-                <b>Vs ${player.opponent}:</b> Typically sees 15% volume increase.<br>
-                <b>Prediction:</b> ${streak === 'HOT' ? 'Over' : 'Under'} likely due to recent usage.
-            `;
-            content.innerHTML = currentInsights;
-        } catch(e) {
-            content.innerHTML = "Insights unavailable for this player.";
-        }
-    }
-
-    function filterRoster() {
-        const term = document.getElementById('p-search').value.toLowerCase();
-        const filtered = fullRoster.filter(p => p.name.toLowerCase().includes(term));
-        document.getElementById('player-select').innerHTML = filtered.map(p => `<option value="${p.id}">${p.name} (${p.team})</option>`).join('');
-    }
-
-    function addProp() {
-        const pSel = document.getElementById('player-select');
-        const line = parseFloat(document.getElementById('bet-line').value);
-        if (!pSel.value || isNaN(line)) return alert("Fill all fields!");
-
-        activeProps.push({
-            id: pSel.value,
-            name: pSel.options[pSel.selectedIndex].text,
-            sport: document.getElementById('sport-select').value,
-            gameId: document.getElementById('game-select').value,
-            type: document.getElementById('prop-type').value,
-            line: line, current: 0, hit: false,
-            prediction: currentInsights
-        });
-        save();
-    }
-
-    async function refreshLiveStats() {
-        const config = { "basketball/nba": { pts: "PTS", reb: "REB", ast: "AST" } };
-        for (let p of activeProps) {
+        for (const s of sports) {
             try {
-                const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${p.sport}/summary?event=${p.gameId}`);
+                const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${s.sport}/${s.league}/scoreboard`);
                 const data = await res.json();
-                const label = config[p.sport][p.type];
-                data.boxscore?.players?.forEach(t => t.statistics.forEach(s => {
-                    const athlete = s.athletes.find(a => a.athlete.id === p.id);
-                    if(athlete) {
-                        const idx = s.labels.indexOf(label);
-                        if(idx !== -1) p.current = parseFloat(athlete.stats[idx]) || 0;
-                    }
-                }));
-                if(p.current >= p.line) p.hit = true;
-            } catch(e) {}
+                data.events.forEach(event => {
+                    allGames.push({ ...event, leagueLabel: s.league.toUpperCase() });
+                });
+            } catch (e) { console.error(`Error loading ${s.league}`); }
         }
-        renderUI();
+
+        // Sort: Live games first, then by time
+        allGames.sort((a, b) => (b.status.type.state === 'in') - (a.status.type.state === 'in'));
+
+        renderGames(allGames);
+        document.getElementById('update-time').innerText = `Last update: ${new Date().toLocaleTimeString()}`;
     }
 
-    function renderUI() {
-        document.getElementById('bets-container').innerHTML = activeProps.map((p, i) => `
-            <div class="card" style="border-top-color: ${p.hit ? 'var(--green)' : 'var(--red)'}">
-                <button class="remove" onclick="removeProp(${i})">✕</button>
-                <div style="font-size:0.6rem; color:#888;">${p.sport.toUpperCase()}</div>
-                <h3 style="margin:5px 0;">${p.name}</h3>
-                <div style="font-size:0.8rem;">LINE: <b>${p.line}</b> ${p.type.toUpperCase()}</div>
-                <div class="stat-val" style="color:${p.hit ? 'var(--green)' : '#fff'}">${p.current}</div>
-                <div class="prediction-text">${p.prediction}</div>
-            </div>
-        `).join('');
+    function renderGames(games) {
+        const container = document.getElementById('broadcast-container');
+        container.innerHTML = games.map(game => {
+            const home = game.competitions[0].competitors.find(c => c.homeAway === 'home');
+            const away = game.competitions[0].competitors.find(c => c.homeAway === 'away');
+            const state = game.status.type.state;
+            const statusColor = state === 'in' ? 'var(--live)' : (state === 'post' ? '#666' : '#fff');
+
+            return `
+                <div class="game-card">
+                    <span class="league-tag">${game.leagueLabel}</span>
+                    <span class="game-status" style="color: ${statusColor}">${game.status.type.detail}</span>
+                    
+                    <div class="team-row">
+                        <div class="team-info">
+                            <img class="team-logo" src="${away.team.logo}">
+                            <span class="team-name">${away.team.displayName}</span>
+                        </div>
+                        <div class="score">${away.score}</div>
+                    </div>
+
+                    <div class="team-row">
+                        <div class="team-info">
+                            <img class="team-logo" src="${home.team.logo}">
+                            <span class="team-name">${home.team.displayName}</span>
+                        </div>
+                        <div class="score">${home.score}</div>
+                    </div>
+
+                    <div class="odds-row">
+                        <span>${game.competitions[0].notes[0]?.headline || game.venue?.fullName || ''}</span>
+                        <span style="color: var(--accent)">${game.competitions[0].odds?.[0]?.details || ''}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
-    function save() { localStorage.setItem('props_v15', JSON.stringify(activeProps)); renderUI(); }
-    function removeProp(i) { activeProps.splice(i, 1); save(); }
-    function manualAdd() {
-        const n = prompt("Player Name:");
-        if(n) { fullRoster.push({id: Date.now().toString(), name: n, team: "MAN", opponent: "Team"}); filterRoster(); }
-    }
+    // Initialize and set interval
+    updateBroadcast();
+    setInterval(updateBroadcast, 30000); 
 </script>
 </body>
 </html>
