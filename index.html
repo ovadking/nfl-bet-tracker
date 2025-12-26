@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Prop Tracker - Fixed</title>
+    <title>Ultimate Prop Tracker v23</title>
     <style>
         :root { --red: #ff3e3e; --bg: #050505; --card: #121212; --green: #00ff88; --text: #eee; --yellow: #ffcc00; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -14,30 +14,23 @@
         select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 0.9rem; outline: none; transition: 0.2s; }
         select:focus, input:focus { border-color: var(--red); }
         .btn-add { background: var(--red); border: none; font-weight: 900; cursor: pointer; margin-top: 20px; height: 50px; }
-        .btn-add:hover { background: #ff5555; transform: scale(1.02); }
-        .btn-notif { background: transparent; border: 1px solid var(--yellow); color: var(--yellow); font-size: 0.7rem; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
         #main { flex-grow: 1; padding: 40px; overflow-y: auto; background: radial-gradient(circle at top right, #111, #050505); }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
-        .parlay-card { background: var(--card); border-radius: 20px; border: 1px solid #333; overflow: hidden; animation: slideIn 0.3s ease-out; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .parlay-header { background: #1a1a1a; padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .leg { padding: 20px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .parlay-card { background: var(--card); border-radius: 20px; border: 1px solid #333; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .leg { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
         .leg.hit { background: rgba(0, 255, 136, 0.05); }
-        .leg-name { font-weight: 700; font-size: 1rem; }
-        .leg-val { font-size: 1.5rem; font-weight: 900; }
-        .remove-btn { color: #555; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
-        .remove-btn:hover { color: var(--red); }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .remove-btn { color: #555; cursor: pointer; font-size: 0.8rem; margin-left: 10px; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>Tracker Pro v22</h2>
-    <button class="btn-notif" onclick="Notification.requestPermission()">🔔 CLICK TO ENABLE ALERTS</button>
+    <h2>Tracker Pro v23</h2>
+    <button onclick="Notification.requestPermission()" style="background:transparent; border:1px solid var(--yellow); color:var(--yellow); font-size:0.7rem; cursor:pointer;">🔔 ENABLE ALERTS</button>
 
     <div class="builder">
         <label>1. Sport</label>
-        <select id="sport" onchange="loadGames()">
+        <select id="sport" onchange="updateStatOptions(); loadGames();">
             <option value="basketball/nba">NBA Basketball</option>
             <option value="football/nfl">NFL Football</option>
         </select>
@@ -48,21 +41,13 @@
         <label>3. Select Player</label>
         <select id="player-select"></select>
 
-        <label>4. Target & Type</label>
+        <label>4. Stat & Target</label>
         <div style="display:flex; gap:8px;">
-            <select id="stat-type" style="flex:1.5;">
-                <option value="PTS">Points</option>
-                <option value="REB">Rebounds</option>
-                <option value="AST">Assists</option>
-            </select>
+            <select id="stat-type" style="flex:1.8;"></select>
             <input type="number" id="target" step="0.5" placeholder="Line" style="flex:1;">
         </div>
 
-        <button class="btn-add" onclick="finalizeParlay()">DEPLOY TRACKER</button>
-    </div>
-    
-    <div style="margin-top: 30px; font-size: 0.7rem; color: #555;">
-        Status: <span id="sync-status" style="color:var(--green)">Connected</span>
+        <button class="btn-add" onclick="finalizeTracker()">DEPLOY TRACKER</button>
     </div>
 </div>
 
@@ -71,7 +56,29 @@
 </div>
 
 <script>
-    let activeTrackers = JSON.parse(localStorage.getItem('props_v22')) || [];
+    let activeTrackers = JSON.parse(localStorage.getItem('props_v23')) || [];
+
+    const statsConfig = {
+        "basketball/nba": [
+            { label: "Points", val: "PTS" },
+            { label: "Rebounds", val: "REB" },
+            { label: "Assists", val: "AST" },
+            { label: "Three Pointers", val: "3PM" }
+        ],
+        "football/nfl": [
+            { label: "Pass Yards", val: "PY" },
+            { label: "Rush Yards", val: "RY" },
+            { label: "Rec Yards", val: "REY" },
+            { label: "Receptions", val: "REC" },
+            { label: "Touchdowns", val: "TD" }
+        ]
+    };
+
+    function updateStatOptions() {
+        const sport = document.getElementById('sport').value;
+        const statSelect = document.getElementById('stat-type');
+        statSelect.innerHTML = statsConfig[sport].map(s => `<option value="${s.val}">${s.label}</option>`).join('');
+    }
 
     async function loadGames() {
         const sport = document.getElementById('sport').value;
@@ -91,9 +98,8 @@
         const sport = document.getElementById('sport').value;
         const gameOpt = document.getElementById('game-select').selectedOptions[0];
         const playerSel = document.getElementById('player-select');
-        playerSel.innerHTML = "<option>Loading Roster...</option>";
+        playerSel.innerHTML = "<option>Loading...</option>";
 
-        // Fetch using Team Roster API (Stable for Pregame)
         try {
             const [r1, r2] = await Promise.all([
                 fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${gameOpt.dataset.t1}/roster`),
@@ -101,16 +107,11 @@
             ]);
             const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
             const allPlayers = [...d1.athletes.flatMap(g => g.items), ...d2.athletes.flatMap(g => g.items)];
-            
-            playerSel.innerHTML = allPlayers
-                .sort((a, b) => a.displayName.localeCompare(b.displayName))
-                .map(p => `<option value="${p.id}">${p.displayName}</option>`).join('');
-        } catch (e) {
-            playerSel.innerHTML = "<option value='4277811'>Trae Young (ATL)</option><option value='4278104'>Josh Giddey (CHI)</option>";
-        }
+            playerSel.innerHTML = allPlayers.sort((a,b)=>a.displayName.localeCompare(b.displayName)).map(p => `<option value="${p.id}">${p.displayName}</option>`).join('');
+        } catch (e) { playerSel.innerHTML = "<option>Error loading</option>"; }
     }
 
-    function finalizeParlay() {
+    function finalizeTracker() {
         const p = document.getElementById('player-select');
         const target = parseFloat(document.getElementById('target').value);
         if (!target) return alert("Set a line!");
@@ -122,9 +123,7 @@
             sport: document.getElementById('sport').value,
             type: document.getElementById('stat-type').value,
             target: target,
-            current: 0,
-            hit: false,
-            notified: false
+            current: 0, hit: false, notified: false
         });
         save();
     }
@@ -135,20 +134,30 @@
                 const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${prop.sport}/summary?event=${prop.gameId}`);
                 const data = await res.json();
                 
+                // Map local prop names to ESPN API labels
+                const labelMap = { 
+                    "PTS": "PTS", "REB": "REB", "AST": "AST", 
+                    "PY": "YDS", "RY": "YDS", "REY": "YDS", "REC": "REC", "TD": "TD" 
+                };
+
                 data.boxscore?.players?.forEach(team => {
-                    const stats = team.statistics[0];
-                    const athlete = stats.athletes.find(a => a.athlete.id === prop.id);
-                    if (athlete) {
-                        const idx = stats.labels.indexOf(prop.type);
-                        prop.current = parseFloat(athlete.stats[idx]) || 0;
-                        if (prop.current >= prop.target) {
-                            prop.hit = true;
-                            if (!prop.notified) {
-                                new Notification("💰 PROP HIT!", { body: `${prop.name} reached ${prop.current} ${prop.type}!` });
-                                prop.notified = true;
+                    // NFL API separates Passing, Rushing, Receiving into different statistic blocks
+                    team.statistics.forEach(statGroup => {
+                        const athlete = statGroup.athletes.find(a => a.athlete.id === prop.id);
+                        if (athlete) {
+                            const idx = statGroup.labels.indexOf(labelMap[prop.type]);
+                            if (idx !== -1) {
+                                prop.current = parseFloat(athlete.stats[idx]) || 0;
+                                if (prop.current >= prop.target) {
+                                    prop.hit = true;
+                                    if (!prop.notified && Notification.permission === "granted") {
+                                        new Notification("💰 HIT!", { body: `${prop.name} hit ${prop.target} ${prop.type}` });
+                                        prop.notified = true;
+                                    }
+                                }
                             }
                         }
-                    }
+                    });
                 });
             } catch (e) {}
         }
@@ -158,27 +167,22 @@
     function render() {
         document.getElementById('display-grid').innerHTML = activeTrackers.map((p, i) => `
             <div class="parlay-card">
-                <div class="parlay-header">
-                    <span style="color:var(--red); font-size:0.6rem; font-weight:bold;">LIVE TRACKING</span>
+                <div style="background:#1a1a1a; padding:10px; font-size:0.6rem; display:flex; justify-content:space-between;">
+                    <span>LIVE TRACKER</span>
                     <span class="remove-btn" onclick="remove(${i})">REMOVE</span>
                 </div>
                 <div class="leg ${p.hit ? 'hit' : ''}">
-                    <div>
-                        <div class="leg-name">${p.name}</div>
-                        <div style="font-size:0.7rem; color:#666;">Target: ${p.target} ${p.type}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="leg-val" style="color:${p.hit ? 'var(--green)' : '#fff'}">${p.current}</div>
-                        ${p.hit ? '<span style="color:var(--green); font-size:0.8rem;">CLEARED ✓</span>' : ''}
-                    </div>
+                    <div><strong>${p.name}</strong><br><small>${p.target} ${p.type}</small></div>
+                    <div style="font-size:1.5rem; font-weight:900; color:${p.hit?'var(--green)':'#fff'}">${p.current}</div>
                 </div>
             </div>
         `).join('');
     }
 
-    function save() { localStorage.setItem('props_v22', JSON.stringify(activeTrackers)); render(); }
+    function save() { localStorage.setItem('props_v23', JSON.stringify(activeTrackers)); render(); }
     function remove(i) { activeTrackers.splice(i, 1); save(); }
 
+    updateStatOptions();
     loadGames();
     setInterval(updateData, 15000);
 </script>
