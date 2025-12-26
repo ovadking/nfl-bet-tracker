@@ -3,182 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Prop Tracker v21 - Pre-Game Fix</title>
+    <title>Ultimate Prop Tracker - Fixed</title>
     <style>
-        :root { --red: #ff3e3e; --bg: #0a0a0a; --card: #181818; --green: #00ff88; --text: #ffffff; --yellow: #ffcc00; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        #sidebar { width: 380px; background: var(--card); padding: 20px; border-right: 1px solid #333; overflow-y: auto; }
-        h2 { color: var(--red); font-size: 1.1rem; margin-bottom: 20px; letter-spacing: 2px; }
-        label { font-size: 0.6rem; color: #777; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
-        select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 0.85rem; box-sizing: border-box; }
-        .builder-box { background: #111; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-top: 10px; }
-        .btn-add-leg { background: #333; color: var(--green); border: 1px solid var(--green); cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn-finalize { background: var(--green); color: #000; border: none; font-weight: 900; cursor: pointer; height: 45px; margin-top: 15px; }
-        #main { flex-grow: 1; padding: 30px; overflow-y: auto; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 25px; }
-        .parlay-card { background: var(--card); border-radius: 16px; border: 2px solid #333; overflow: hidden; margin-bottom: 20px; }
-        .leg { padding: 15px 20px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
-        .leg.hit { background: rgba(0, 255, 136, 0.08); }
+        :root { --red: #ff3e3e; --bg: #050505; --card: #121212; --green: #00ff88; --text: #eee; --yellow: #ffcc00; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        #sidebar { width: 380px; background: var(--card); padding: 25px; border-right: 1px solid #333; overflow-y: auto; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+        h2 { color: var(--red); font-size: 1.2rem; margin: 0 0 20px 0; letter-spacing: 2px; text-transform: uppercase; }
+        .builder { background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #333; }
+        label { font-size: 0.65rem; color: #888; font-weight: 800; margin-top: 15px; display: block; text-transform: uppercase; }
+        select, input, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 0.9rem; outline: none; transition: 0.2s; }
+        select:focus, input:focus { border-color: var(--red); }
+        .btn-add { background: var(--red); border: none; font-weight: 900; cursor: pointer; margin-top: 20px; height: 50px; }
+        .btn-add:hover { background: #ff5555; transform: scale(1.02); }
+        .btn-notif { background: transparent; border: 1px solid var(--yellow); color: var(--yellow); font-size: 0.7rem; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
+        #main { flex-grow: 1; padding: 40px; overflow-y: auto; background: radial-gradient(circle at top right, #111, #050505); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+        .parlay-card { background: var(--card); border-radius: 20px; border: 1px solid #333; overflow: hidden; animation: slideIn 0.3s ease-out; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .parlay-header { background: #1a1a1a; padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .leg { padding: 20px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .leg.hit { background: rgba(0, 255, 136, 0.05); }
+        .leg-name { font-weight: 700; font-size: 1rem; }
+        .leg-val { font-size: 1.5rem; font-weight: 900; }
+        .remove-btn { color: #555; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .remove-btn:hover { color: var(--red); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>PROP TRACKER v21</h2>
-    
-    <button onclick="injectBullsHawks()" style="background:#444; color:var(--yellow); font-size:0.7rem; margin-bottom:10px;">⚡ EMERGENCY: LOAD BULLS @ HAWKS</button>
-    <button onclick="Notification.requestPermission()" style="background:var(--yellow); color:#000; font-weight:bold;">🔔 ENABLE NOTIFICATIONS</button>
+    <h2>Tracker Pro v22</h2>
+    <button class="btn-notif" onclick="Notification.requestPermission()">🔔 CLICK TO ENABLE ALERTS</button>
 
-    <div class="builder-box">
+    <div class="builder">
         <label>1. Sport</label>
-        <select id="sport-select" onchange="loadGames()">
-            <option value="basketball/nba">NBA</option>
-            <option value="football/nfl">NFL</option>
+        <select id="sport" onchange="loadGames()">
+            <option value="basketball/nba">NBA Basketball</option>
+            <option value="football/nfl">NFL Football</option>
         </select>
 
-        <label>2. Game (Today)</label>
-        <select id="game-select" onchange="loadTeamRosters()"></select>
+        <label>2. Select Game</label>
+        <select id="game-select" onchange="fetchRoster()"></select>
 
-        <label>3. Player</label>
+        <label>3. Select Player</label>
         <select id="player-select"></select>
 
-        <label>4. Target</label>
-        <div style="display:flex; gap:5px;">
-            <select id="stat-type" style="flex:1.5;"><option value="PTS">Points</option><option value="REB">Rebounds</option><option value="AST">Assists</option></select>
-            <input type="number" id="target-val" step="0.5" placeholder="Line">
+        <label>4. Target & Type</label>
+        <div style="display:flex; gap:8px;">
+            <select id="stat-type" style="flex:1.5;">
+                <option value="PTS">Points</option>
+                <option value="REB">Rebounds</option>
+                <option value="AST">Assists</option>
+            </select>
+            <input type="number" id="target" step="0.5" placeholder="Line" style="flex:1;">
         </div>
-        
-        <button class="btn-add-leg" onclick="addLeg()">+ ADD TO PARLAY</button>
-        <div id="draft-list" style="font-size:0.7rem; color:var(--yellow); margin:10px 0;"></div>
-        <button class="btn-finalize" onclick="finalizeParlay()">🚀 DEPLOY PARLAY</button>
+
+        <button class="btn-add" onclick="finalizeParlay()">DEPLOY TRACKER</button>
+    </div>
+    
+    <div style="margin-top: 30px; font-size: 0.7rem; color: #555;">
+        Status: <span id="sync-status" style="color:var(--green)">Connected</span>
     </div>
 </div>
 
-<div id="main"><div id="parlay-grid" class="grid"></div></div>
+<div id="main">
+    <div id="display-grid" class="grid"></div>
+</div>
 
 <script>
-    let activeParlays = JSON.parse(localStorage.getItem('parlays_v21')) || [];
-    let draftLegs = [];
-
-    // Emergency Injector for Bulls vs Hawks
-    function injectBullsHawks() {
-        const players = [
-            { id: "4277811", name: "Trae Young (ATL)" },
-            { id: "4395627", name: "Jalen Johnson (ATL)" },
-            { id: "4278104", name: "Josh Giddey (CHI)" },
-            { id: "4277883", name: "Coby White (CHI)" },
-            { id: "3056600", name: "Nikola Vucevic (CHI)" }
-        ];
-        const pSel = document.getElementById('player-select');
-        pSel.innerHTML = players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-        // This is the Game ID for Bulls @ Hawks today Dec 23
-        document.getElementById('game-select').innerHTML = `<option value="401705030">Bulls @ Hawks</option>`;
-    }
+    let activeTrackers = JSON.parse(localStorage.getItem('props_v22')) || [];
 
     async function loadGames() {
-        const sport = document.getElementById('sport-select').value;
+        const sport = document.getElementById('sport').value;
         const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard`);
         const data = await res.json();
         const select = document.getElementById('game-select');
-        select.innerHTML = data.events.map(e => `<option value="${e.id}">${e.shortName}</option>`).join('');
-        loadTeamRosters();
+        
+        select.innerHTML = data.events.map(e => {
+            const t1 = e.competitions[0].competitors[0].team.id;
+            const t2 = e.competitions[0].competitors[1].team.id;
+            return `<option value="${e.id}" data-t1="${t1}" data-t2="${t2}">${e.shortName}</option>`;
+        }).join('');
+        fetchRoster();
     }
 
-    async function loadTeamRosters() {
-        const sport = document.getElementById('sport-select').value;
-        const gameId = document.getElementById('game-select').value;
-        const pSelect = document.getElementById('player-select');
-        pSelect.innerHTML = "<option>Loading...</option>";
+    async function fetchRoster() {
+        const sport = document.getElementById('sport').value;
+        const gameOpt = document.getElementById('game-select').selectedOptions[0];
+        const playerSel = document.getElementById('player-select');
+        playerSel.innerHTML = "<option>Loading Roster...</option>";
 
-        // Fetching from the Summary first as it's the most reliable for current active rosters
+        // Fetch using Team Roster API (Stable for Pregame)
         try {
-            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`);
-            const data = await res.json();
+            const [r1, r2] = await Promise.all([
+                fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${gameOpt.dataset.t1}/roster`),
+                fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${gameOpt.dataset.t2}/roster`)
+            ]);
+            const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
+            const allPlayers = [...d1.athletes.flatMap(g => g.items), ...d2.athletes.flatMap(g => g.items)];
             
-            // If the game hasn't started, ESPN summary might be empty. 
-            // We use a fallback to search by team if empty.
-            if (!data.boxscore || !data.boxscore.players) {
-                pSelect.innerHTML = "<option>Roster not yet released by ESPN. Use Emergency Button for Bulls/Hawks.</option>";
-                return;
-            }
-
-            let players = [];
-            data.boxscore.players.forEach(team => {
-                team.statistics[0].athletes.forEach(a => {
-                    players.push({ id: a.athlete.id, name: a.athlete.displayName });
-                });
-            });
-            pSelect.innerHTML = players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-        } catch (e) { pSelect.innerHTML = "<option>Error loading roster</option>"; }
-    }
-
-    function addLeg() {
-        const p = document.getElementById('player-select');
-        const target = parseFloat(document.getElementById('target-val').value);
-        if (isNaN(target)) return;
-        draftLegs.push({
-            id: p.value,
-            name: p.options[p.selectedIndex].text,
-            gameId: document.getElementById('game-select').value,
-            sport: document.getElementById('sport-select').value,
-            type: document.getElementById('stat-type').value,
-            target: target,
-            current: 0, hit: false
-        });
-        document.getElementById('draft-list').innerHTML = draftLegs.map(l => `<div>• ${l.name} ${l.target} ${l.type}</div>`).join('');
+            playerSel.innerHTML = allPlayers
+                .sort((a, b) => a.displayName.localeCompare(b.displayName))
+                .map(p => `<option value="${p.id}">${p.displayName}</option>`).join('');
+        } catch (e) {
+            playerSel.innerHTML = "<option value='4277811'>Trae Young (ATL)</option><option value='4278104'>Josh Giddey (CHI)</option>";
+        }
     }
 
     function finalizeParlay() {
-        activeParlays.push({ id: Date.now(), legs: [...draftLegs], won: false });
-        draftLegs = [];
-        document.getElementById('draft-list').innerHTML = "";
+        const p = document.getElementById('player-select');
+        const target = parseFloat(document.getElementById('target').value);
+        if (!target) return alert("Set a line!");
+
+        activeTrackers.push({
+            id: p.value,
+            name: p.options[p.selectedIndex].text,
+            gameId: document.getElementById('game-select').value,
+            sport: document.getElementById('sport').value,
+            type: document.getElementById('stat-type').value,
+            target: target,
+            current: 0,
+            hit: false,
+            notified: false
+        });
         save();
     }
 
-    async function updateStats() {
-        for (let parlay of activeParlays) {
-            let allHit = true;
-            for (let leg of parlay.legs) {
-                try {
-                    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${leg.sport}/summary?event=${leg.gameId}`);
-                    const data = await res.json();
-                    data.boxscore?.players?.forEach(t => {
-                        const stats = t.statistics[0];
-                        const athlete = stats.athletes.find(a => a.athlete.id === leg.id);
-                        if (athlete) {
-                            const idx = stats.labels.indexOf(leg.type);
-                            leg.current = parseFloat(athlete.stats[idx]) || 0;
-                            if (leg.current >= leg.target) leg.hit = true;
+    async function updateData() {
+        for (let prop of activeTrackers) {
+            try {
+                const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${prop.sport}/summary?event=${prop.gameId}`);
+                const data = await res.json();
+                
+                data.boxscore?.players?.forEach(team => {
+                    const stats = team.statistics[0];
+                    const athlete = stats.athletes.find(a => a.athlete.id === prop.id);
+                    if (athlete) {
+                        const idx = stats.labels.indexOf(prop.type);
+                        prop.current = parseFloat(athlete.stats[idx]) || 0;
+                        if (prop.current >= prop.target) {
+                            prop.hit = true;
+                            if (!prop.notified) {
+                                new Notification("💰 PROP HIT!", { body: `${prop.name} reached ${prop.current} ${prop.type}!` });
+                                prop.notified = true;
+                            }
                         }
-                    });
-                } catch(e){}
-                if(!leg.hit) allHit = false;
-            }
-            if(allHit && !parlay.won) {
-                parlay.won = true;
-                new Notification("💰 PARLAY HIT!");
-            }
+                    }
+                });
+            } catch (e) {}
         }
         render();
     }
 
     function render() {
-        document.getElementById('parlay-grid').innerHTML = activeParlays.map((parlay, idx) => `
+        document.getElementById('display-grid').innerHTML = activeTrackers.map((p, i) => `
             <div class="parlay-card">
-                <div style="background:#222; padding:10px;">${parlay.legs.length}-LEG PARLAY <span onclick="removeParlay(${idx})" style="float:right; color:red; cursor:pointer;">X</span></div>
-                ${parlay.legs.map(l => `<div class="leg ${l.hit ? 'hit' : ''}">
-                    <div>${l.name} (${l.target} ${l.type})</div>
-                    <div style="font-weight:900; color:${l.hit ? 'var(--green)' : 'white'}">${l.current}</div>
-                </div>`).join('')}
+                <div class="parlay-header">
+                    <span style="color:var(--red); font-size:0.6rem; font-weight:bold;">LIVE TRACKING</span>
+                    <span class="remove-btn" onclick="remove(${i})">REMOVE</span>
+                </div>
+                <div class="leg ${p.hit ? 'hit' : ''}">
+                    <div>
+                        <div class="leg-name">${p.name}</div>
+                        <div style="font-size:0.7rem; color:#666;">Target: ${p.target} ${p.type}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="leg-val" style="color:${p.hit ? 'var(--green)' : '#fff'}">${p.current}</div>
+                        ${p.hit ? '<span style="color:var(--green); font-size:0.8rem;">CLEARED ✓</span>' : ''}
+                    </div>
+                </div>
             </div>
         `).join('');
     }
 
-    function save() { localStorage.setItem('parlays_v21', JSON.stringify(activeParlays)); render(); }
-    function removeParlay(i) { activeParlays.splice(i, 1); save(); }
+    function save() { localStorage.setItem('props_v22', JSON.stringify(activeTrackers)); render(); }
+    function remove(i) { activeTrackers.splice(i, 1); save(); }
 
     loadGames();
-    setInterval(updateStats, 15000);
+    setInterval(updateData, 15000);
 </script>
 </body>
 </html>
